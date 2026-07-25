@@ -59,9 +59,9 @@ During Mirror lag, the UI displays “transaction confirmed, balance is being in
 ### 5. Perk claim
 
 1. Boris opens a perk with a token threshold.
-2. The API checks World verification, the confirmed token balance, and inventory.
+2. The API checks World verification, token association, the confirmed Mirror Node balance, and inventory; tokens are not spent.
 3. The claim is created once; repeating the same intent returns the existing claim.
-4. Alina marks fulfillment; the public audit shows the claim ID/status, but not the address or contact details.
+4. Alina marks manual fulfillment; the private note remains in PostgreSQL, while the public audit shows only the claim/perk IDs and status.
 
 ### 6. Verifiable conclusion
 

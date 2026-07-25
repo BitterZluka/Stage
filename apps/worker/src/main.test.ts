@@ -137,3 +137,40 @@ test(
     }
   },
 );
+
+test(
+  "perk HCS outbox event is processed idempotently",
+  { skip: !runDatabaseTests, timeout: 30_000 },
+  async () => {
+    const database = new PrismaClient();
+    await database.$connect();
+    const aggregateId = randomUUID();
+    const event = await database.outboxEvent.create({
+      data: {
+        idempotencyKey: `perk-activated:${aggregateId}`,
+        eventType: "HCS_PERK_ACTIVATED",
+        aggregateId,
+        payload: {
+          perkId: aggregateId,
+          creatorId: randomUUID(),
+          tokenThreshold: "100",
+          inventory: 10,
+        },
+      },
+    });
+    try {
+      assert.equal(
+        await processOneOutboxEvent(database, new MockHederaProvider()),
+        true,
+      );
+      const processed = await database.outboxEvent.findUniqueOrThrow({
+        where: { id: event.id },
+      });
+      assert.equal(processed.status, "CONFIRMED");
+      assert.ok(processed.publishedAt);
+    } finally {
+      await database.outboxEvent.delete({ where: { id: event.id } });
+      await database.$disconnect();
+    }
+  },
+);

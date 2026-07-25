@@ -1,24 +1,39 @@
 import type {
   Challenge,
   ChallengeId,
+  Claim,
+  ClaimId,
+  CreateClaimInput,
   CreateChallengeInput,
   CreateCreatorInput,
+  CreatePerkInput,
   Creator,
   CreatorId,
   MutationOptions,
   OperationAccepted,
   Page,
   PageRequest,
+  Perk,
+  PerkId,
   RewardPayout,
   SubmissionId,
   UpdateChallengeInput,
+  FulfillClaimInput,
+  UpdatePerkInput,
   WorldProofInput,
   WorldRpContextView,
   WorldVerificationView,
 } from "../contracts.js";
-import { ChallengeStatus } from "@creator-platform/shared";
+import {
+  ChallengeStatus,
+  ClaimStatus,
+  PerkStatus,
+  type IsoTimestamp,
+} from "@creator-platform/shared";
 import type { ChallengeService } from "../services/challenge-service.js";
+import type { ClaimService } from "../services/claim-service.js";
 import type { CreatorService } from "../services/creator-service.js";
+import type { PerkService } from "../services/perk-service.js";
 import type { RewardService } from "../services/reward-service.js";
 import type { WorldService } from "../services/world-service.js";
 import { STAGE_SELFIE_ENROLMENT_ACTION } from "@stage/world/shared";
@@ -134,6 +149,115 @@ export class MockRewardService implements RewardService {
     return (
       this.payouts.find((item) => item.submissionId === submissionId) ?? null
     );
+  }
+}
+
+export class MockPerkService implements PerkService {
+  constructor(private readonly perks: Perk[] = []) {}
+
+  async listCreatorPerks(
+    creatorId: CreatorId,
+    page?: Partial<PageRequest>,
+  ): Promise<Page<Perk>> {
+    return pageOf(
+      this.perks.filter((perk) => perk.creatorId === creatorId),
+      page,
+    );
+  }
+
+  async getPerk(perkId: PerkId): Promise<Perk | null> {
+    return this.perks.find((perk) => perk.id === perkId) ?? null;
+  }
+
+  async createPerk(input: CreatePerkInput): Promise<Perk> {
+    const timestamp = new Date().toISOString() as IsoTimestamp;
+    const perk = {
+      ...input,
+      id: `mock-perk-${this.perks.length + 1}` as PerkId,
+      status: PerkStatus.Draft,
+      claimedCount: 0,
+      version: 1,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.perks.push(perk);
+    return perk;
+  }
+
+  async updatePerk(perkId: PerkId, input: UpdatePerkInput): Promise<Perk> {
+    const perk = await this.requirePerk(perkId);
+    Object.assign(perk, input, { version: perk.version + 1 });
+    return perk;
+  }
+
+  activatePerk(perkId: PerkId): Promise<Perk> {
+    return this.withStatus(perkId, PerkStatus.Active);
+  }
+
+  pausePerk(perkId: PerkId): Promise<Perk> {
+    return this.withStatus(perkId, PerkStatus.Paused);
+  }
+
+  resumePerk(perkId: PerkId): Promise<Perk> {
+    return this.withStatus(perkId, PerkStatus.Active);
+  }
+
+  private async requirePerk(perkId: PerkId): Promise<Perk> {
+    const perk = await this.getPerk(perkId);
+    if (!perk) throw new Error("Perk not found");
+    return perk;
+  }
+
+  private async withStatus(perkId: PerkId, status: PerkStatus): Promise<Perk> {
+    const perk = await this.requirePerk(perkId);
+    perk.status = status;
+    perk.version += 1;
+    return perk;
+  }
+}
+
+export class MockClaimService implements ClaimService {
+  constructor(private readonly claims: Claim[] = []) {}
+
+  async createClaim(
+    perkId: PerkId,
+    _input: CreateClaimInput = {},
+  ): Promise<Claim> {
+    void _input;
+    const existing = this.claims.find((claim) => claim.perkId === perkId);
+    if (existing) return existing;
+    throw new Error("TODO: inject a deterministic claimant fixture");
+  }
+
+  async getClaim(claimId: ClaimId): Promise<Claim | null> {
+    return this.claims.find((claim) => claim.id === claimId) ?? null;
+  }
+
+  async listClaims(page?: Partial<PageRequest>): Promise<Page<Claim>> {
+    return pageOf(this.claims, page);
+  }
+
+  async listPerkClaims(
+    perkId: PerkId,
+    page?: Partial<PageRequest>,
+  ): Promise<Page<Claim>> {
+    return pageOf(
+      this.claims.filter((claim) => claim.perkId === perkId),
+      page,
+    );
+  }
+
+  async fulfillClaim(
+    claimId: ClaimId,
+    input: FulfillClaimInput,
+  ): Promise<Claim> {
+    const claim = await this.getClaim(claimId);
+    if (!claim) throw new Error("Claim not found");
+    claim.status = ClaimStatus.Fulfilled;
+    if (input.note !== undefined) claim.fulfillmentNote = input.note;
+    claim.fulfilledAt = new Date().toISOString() as IsoTimestamp;
+    claim.version += 1;
+    return claim;
   }
 }
 

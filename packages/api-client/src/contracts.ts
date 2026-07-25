@@ -101,6 +101,24 @@ export interface UpdateChallengeInput {
   expectedVersion: number;
 }
 
+export interface CreatePerkInput {
+  creatorId: CreatorId;
+  title: string;
+  description: string;
+  tokenThreshold: TokenAmount;
+  inventory: number;
+  requiresWorldVerification: boolean;
+}
+
+export interface UpdatePerkInput {
+  title?: string;
+  description?: string;
+  tokenThreshold?: TokenAmount;
+  inventory?: number;
+  requiresWorldVerification?: boolean;
+  expectedVersion: number;
+}
+
 export type SubmissionDecisionInput =
   | { decision: "accept"; expectedVersion: number }
   | {
@@ -109,6 +127,15 @@ export type SubmissionDecisionInput =
       reasonCode: string;
       note?: string;
     };
+
+export interface CreateClaimInput {
+  accountId?: HederaAccountId;
+}
+
+export interface FulfillClaimInput {
+  expectedVersion: number;
+  note?: string;
+}
 
 export interface MutationOptions {
   idempotencyKey: IdempotencyKey;

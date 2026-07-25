@@ -1,9 +1,13 @@
 import type {
   Challenge,
   ChallengeId,
+  Claim,
+  ClaimId,
+  CreateClaimInput,
   CreateChallengeInput,
   CreateSubmissionInput,
   CreateCreatorInput,
+  CreatePerkInput,
   Creator,
   CreatorId,
   SessionView,
@@ -11,18 +15,24 @@ import type {
   OperationAccepted,
   Page,
   PageRequest,
+  Perk,
+  PerkId,
   RewardPayout,
   Submission,
   SubmissionDecisionInput,
   SubmissionId,
   UpdateChallengeInput,
+  FulfillClaimInput,
+  UpdatePerkInput,
   WorldProofInput,
   WorldRpContextView,
   WorldVerificationView,
 } from "../contracts.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { ChallengeService } from "../services/challenge-service.js";
+import type { ClaimService } from "../services/claim-service.js";
 import type { CreatorService } from "../services/creator-service.js";
+import type { PerkService } from "../services/perk-service.js";
 import type { RewardService } from "../services/reward-service.js";
 import type { SubmissionService } from "../services/submission-service.js";
 import type { WorldService } from "../services/world-service.js";
@@ -288,6 +298,108 @@ export class ApiRewardService
       if (error instanceof ApiClientError && error.status === 404) return null;
       throw error;
     }
+  }
+}
+
+function pageQuery(page?: Partial<PageRequest>): string {
+  const query = new URLSearchParams();
+  if (page?.cursor) query.set("cursor", page.cursor);
+  if (page?.limit) query.set("limit", String(page.limit));
+  return query.size ? `?${query}` : "";
+}
+
+export class ApiPerkService extends ApiServiceContract implements PerkService {
+  listCreatorPerks(
+    creatorId: CreatorId,
+    page?: Partial<PageRequest>,
+  ): Promise<Page<Perk>> {
+    return this.request(`/creators/${creatorId}/perks${pageQuery(page)}`);
+  }
+
+  async getPerk(perkId: PerkId): Promise<Perk | null> {
+    try {
+      return await this.request(`/perks/${perkId}`);
+    } catch (error) {
+      if (error instanceof ApiClientError && error.status === 404) return null;
+      throw error;
+    }
+  }
+
+  createPerk(input: CreatePerkInput): Promise<Perk> {
+    const { creatorId, ...body } = input;
+    return this.request(`/creators/${creatorId}/perks`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  }
+
+  updatePerk(perkId: PerkId, input: UpdatePerkInput): Promise<Perk> {
+    return this.request(`/perks/${perkId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+  }
+
+  activatePerk(perkId: PerkId, expectedVersion: number): Promise<Perk> {
+    return this.transition(perkId, "activate", expectedVersion);
+  }
+
+  pausePerk(perkId: PerkId, expectedVersion: number): Promise<Perk> {
+    return this.transition(perkId, "pause", expectedVersion);
+  }
+
+  resumePerk(perkId: PerkId, expectedVersion: number): Promise<Perk> {
+    return this.transition(perkId, "resume", expectedVersion);
+  }
+
+  private transition(
+    perkId: PerkId,
+    action: "activate" | "pause" | "resume",
+    expectedVersion: number,
+  ): Promise<Perk> {
+    return this.request(`/perks/${perkId}/${action}`, {
+      method: "POST",
+      body: JSON.stringify({ expectedVersion }),
+    });
+  }
+}
+
+export class ApiClaimService
+  extends ApiServiceContract
+  implements ClaimService
+{
+  createClaim(perkId: PerkId, input: CreateClaimInput = {}): Promise<Claim> {
+    return this.request(`/perks/${perkId}/claims`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async getClaim(claimId: ClaimId): Promise<Claim | null> {
+    try {
+      return await this.request(`/claims/${claimId}`);
+    } catch (error) {
+      if (error instanceof ApiClientError && error.status === 404) return null;
+      throw error;
+    }
+  }
+
+  listClaims(page?: Partial<PageRequest>): Promise<Page<Claim>> {
+    return this.request(`/claims${pageQuery(page)}`);
+  }
+
+  listPerkClaims(
+    perkId: PerkId,
+    page?: Partial<PageRequest>,
+  ): Promise<Page<Claim>> {
+    return this.request(`/perks/${perkId}/claims${pageQuery(page)}`);
+  }
+
+  fulfillClaim(claimId: ClaimId, input: FulfillClaimInput): Promise<Claim> {
+    return this.request(`/claims/${claimId}/fulfill`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   }
 }
 

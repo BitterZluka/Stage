@@ -90,8 +90,11 @@ export interface Perk extends EntityTimestamps {
   title: string;
   description: string;
   status: PerkStatus;
-  price: TokenAmount;
-  supply: string;
+  tokenThreshold: TokenAmount;
+  inventory: number;
+  claimedCount: number;
+  requiresWorldVerification: boolean;
+  version: number;
 }
 
 export interface Claim extends EntityTimestamps {
@@ -99,6 +102,9 @@ export interface Claim extends EntityTimestamps {
   perkId: PerkId;
   claimantId: UserId;
   status: ClaimStatus;
+  fulfillmentNote?: string;
+  fulfilledAt?: IsoTimestamp;
+  version: number;
   nftTokenId?: HederaTokenId;
   nftSerial?: NftSerial;
   mintTransactionId?: TransactionId;

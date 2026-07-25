@@ -1,9 +1,11 @@
 import type {
   CreatorId,
+  CreatePerkInput,
   Page,
   PageRequest,
   Perk,
   PerkId,
+  UpdatePerkInput,
 } from "../contracts.js";
 
 export interface PerkService {
@@ -12,7 +14,9 @@ export interface PerkService {
     page?: Partial<PageRequest>,
   ): Promise<Page<Perk>>;
   getPerk(perkId: PerkId): Promise<Perk | null>;
-  createPerk(
-    input: Omit<Perk, "id" | "createdAt" | "updatedAt">,
-  ): Promise<Perk>;
+  createPerk(input: CreatePerkInput): Promise<Perk>;
+  updatePerk(perkId: PerkId, input: UpdatePerkInput): Promise<Perk>;
+  activatePerk(perkId: PerkId, expectedVersion: number): Promise<Perk>;
+  pausePerk(perkId: PerkId, expectedVersion: number): Promise<Perk>;
+  resumePerk(perkId: PerkId, expectedVersion: number): Promise<Perk>;
 }

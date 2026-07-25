@@ -45,11 +45,9 @@ export enum PerkStatus {
 }
 
 export enum ClaimStatus {
-  PendingMint = "pending_mint",
-  Minted = "minted",
-  PendingRedemption = "pending_redemption",
-  Redeemed = "redeemed",
-  Failed = "failed",
+  Claimed = "claimed",
+  Fulfilled = "fulfilled",
+  Cancelled = "cancelled",
 }
 
 export enum TransactionStatus {

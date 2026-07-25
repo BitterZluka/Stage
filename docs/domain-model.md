@@ -9,7 +9,7 @@
 | Creator Economy | `CreatorToken`, `TokenOperation` | one active token per creator; amounts are decimal strings |
 | Challenges | `Challenge`, `Submission`, `Review` | submission only within the window; reward after acceptance; one decision per version |
 | Rewards | `RewardGrant` | unique by `(submissionId, recipientId, reason)` |
-| Perks | `Perk`, `PerkClaim` | eligibility is checked by the server; claims do not exceed inventory |
+| Perks | `Perk`, `PerkClaim` | World and Mirror token-gate eligibility is server-checked; one claim per user; claims do not exceed inventory |
 | Audit | `AuditEvent`, `OutboxMessage` | append-only; public HCS payload contains no PII |
 
 Contexts communicate through IDs and events. Prisma relations do not give one module permission to modify another module's aggregate.
@@ -19,7 +19,8 @@ Contexts communicate through IDs and events. Prisma relations do not give one mo
 - `CreatorToken`: `DRAFT -> CREATING -> ACTIVE | FAILED | PAUSED`.
 - `Challenge`: `DRAFT -> PUBLISHED -> JUDGING -> COMPLETED`; `DRAFT`, `PUBLISHED`, and `JUDGING` may transition to terminal `CANCELLED`.
 - `Submission`: `SUBMITTED -> WINNER | REJECTED`; winner selection atomically reserves one of the challenge's bounded reward slots.
-- `PerkClaim`: `PENDING -> ELIGIBLE -> FULFILLING -> FULFILLED`, or `REJECTED/FAILED/CANCELLED`.
+- `Perk`: `DRAFT -> ACTIVE <-> PAUSED`; the final inventory reservation moves it to terminal `EXHAUSTED`.
+- `PerkClaim`: `CLAIMED -> FULFILLED`; fulfillment is manual and PostgreSQL-backed in the MVP.
 - `WorldIdentity`: absent or verified; rejected/expired proof attempts are not persisted as identities.
 
 **Temporary MVP solution:** the creator performs the review; there is no moderation/admin override. Each user may make one submission per challenge, and editing after submission is prohibited.

@@ -9,7 +9,7 @@
     "start": "node dist/main.js",
     "lint": "eslint src --max-warnings=0",
     "typecheck": "tsc -b --pretty false",
-    "test": "node --import tsx --test src/auth/*.test.ts src/world/*.test.ts src/challenges/*.test.ts src/submissions/*.test.ts"
+    "test": "node --import tsx --test src/auth/*.test.ts src/world/*.test.ts src/challenges/*.test.ts src/submissions/*.test.ts src/perks/*.test.ts src/claims/*.test.ts"
   },
   "dependencies": {
     "@creator-platform/database": "workspace:*",

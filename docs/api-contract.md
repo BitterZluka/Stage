@@ -63,13 +63,17 @@ Chain column: `—` — none; `R` — Hedera/Mirror read; `W(outbox)` — write 
 | World | `POST /world/verify` | `{ proof, hederaAccountId? }` → `WorldVerificationView` | User; action/signal rebuilt by backend | `PROOF_INVALID`, `PROOF_REPLAYED`, `ACTION_MISMATCH`, `SIGNAL_MISMATCH` | — | sync/idempotent |
 | World | `GET /world/status` | — → view | User; self | — | — | sync |
 | Perks | `GET /creators/:creatorId/perks` | query `cursor` → page | Public | — | — | sync |
-| Perks | `POST /creators/:creatorId/perks` | `CreatePerkDto` → `PerkView` | Creator | `THRESHOLD_INVALID`, `INVENTORY_INVALID` | HCS(outbox) | sync DB; audit eventual |
-| Perks | `PATCH /perks/:perkId` | `UpdatePerkDto` → view | Creator; unclaimed constraints | `PERK_LOCKED`, `VERSION_CONFLICT` | — | sync |
-| Claims | `POST /perks/:perkId/claims` | `CreateClaimDto` → `OperationAccepted` | World; eligible holder; NFT association confirmed | `NOT_ELIGIBLE`, `OUT_OF_STOCK`, `CLAIM_EXISTS`, `NFT_NOT_ASSOCIATED` | R + W(outbox)+HCS | 202 async mint/transfer |
+| Perks | `GET /perks/:perkId` | — → `PerkView` | Public; non-draft | — | — | sync |
+| Perks | `POST /creators/:creatorId/perks` | `CreatePerkDto` → `PerkView` | Creator owner | `CREATOR_INACTIVE`, `THRESHOLD_INVALID`, `INVENTORY_INVALID` | — | sync |
+| Perks | `PATCH /perks/:perkId` | `UpdatePerkDto` → view | Creator; draft only | `PERK_NOT_DRAFT`, `VERSION_CONFLICT` | — | sync |
+| Perks | `POST /perks/:perkId/activate` | `{ expectedVersion }` → view | Creator | `CREATOR_TOKEN_NOT_ACTIVE`, `VERSION_CONFLICT` | HCS(outbox) | sync DB; audit eventual |
+| Perks | `POST /perks/:perkId/pause` | `{ expectedVersion }` → view | Creator | `INVALID_PERK_TRANSITION` | — | sync |
+| Perks | `POST /perks/:perkId/resume` | `{ expectedVersion }` → view | Creator | `CREATOR_TOKEN_NOT_ACTIVE` | — | sync |
+| Claims | `POST /perks/:perkId/claims` | `{ accountId? }` → `ClaimView` | User; World when required; eligible token holder | `TOKEN_NOT_ASSOCIATED`, `TOKEN_BALANCE_INSUFFICIENT`, `PERK_OUT_OF_STOCK` | Mirror read | sync/idempotent |
 | Claims | `GET /claims` | query `cursor` → own page | User; self | — | — | sync |
+| Claims | `GET /perks/:perkId/claims` | query `cursor,status` → page | Creator; own perk | — | — | sync |
 | Claims | `GET /claims/:claimId` | — → view | claimant, perk Creator, Admin | — | — | sync |
-| Claims | `POST /claims/:claimId/redeem` | `{ expectedVersion }` → `ClaimView` | User; claimant and current NFT owner | `CLAIM_NOT_REDEEMABLE`, `NFT_OWNERSHIP_MISMATCH` | R + HCS(outbox) | sync DB; audit eventual |
-| Claims | `POST /claims/:claimId/fulfill` | `FulfillClaimDto` → `OperationAccepted` | Creator; own perk, redeem requested | `CLAIM_NOT_FULFILLABLE` | W(outbox burn)+HCS | 202 async burn after fulfillment |
+| Claims | `POST /claims/:claimId/fulfill` | `{ expectedVersion, note? }` → `ClaimView` | Creator; own perk | `CLAIM_ALREADY_FINAL`, `VERSION_CONFLICT` | HCS(outbox) | sync DB; audit eventual |
 | Audit | `GET /audit/events` | filters `aggregateType,aggregateId,cursor` → redacted page | User; own/Creator scope, Admin all | `AUDIT_SCOPE_INVALID` | — | sync |
 | Audit | `GET /audit/public/:publicRef` | — → HCS-backed proof/view | Public | `ANCHOR_NOT_FOUND` | R | eventual read |
 
@@ -119,12 +123,13 @@ type WorldProofDto = {
 type CreatePerkDto = {
   title: string;
   description: string;
-  tokenThreshold: string;
-  inventory: number;
+  tokenThreshold: string;  // positive creator-token base units; not spent
+  inventory: number;       // 1..10000
+  requiresWorldVerification: boolean;
 };
 
 type CreateClaimDto = {
-  fulfillmentInput?: Record<string, string>; // allowlist by perk type
+  accountId?: string;      // must be a verified wallet owned by this user
 };
 ```
 

@@ -44,21 +44,26 @@ enum OperationStatus {
 }
 
 enum ClaimStatus {
-  PENDING_MINT
-  MINTED
-  PENDING_REDEMPTION
-  REDEEMED
-  FAILED
+  CLAIMED
+  FULFILLED
+  CANCELLED
 }
 
-enum UserIntent {
-  FAN
-  CREATOR
+enum PerkStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  EXHAUSTED
 }
 
 enum CreatorStatus {
   ACTIVE
   SUSPENDED
+}
+
+enum UserIntent {
+  FAN
+  CREATOR
 }
 
 model User {
@@ -265,35 +270,46 @@ model WorldRewardClaim {
 }
 
 model Perk {
-  id              String   @id @default(uuid())
-  creatorId       String
-  title           String
-  description     String
-  price           String
-  inventory       Int
-  claimNftTokenId String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  creator         Creator  @relation(fields: [creatorId], references: [id])
-  claims          Claim[]
+  id                        String     @id @default(uuid())
+  creatorId                 String
+  title                     String
+  description               String
+  tokenThreshold            String
+  inventory                 Int
+  claimedCount              Int        @default(0)
+  status                    PerkStatus @default(DRAFT)
+  requiresWorldVerification Boolean    @default(true)
+  version                   Int        @default(1)
+  claimNftTokenId           String?
+  createdAt                 DateTime   @default(now())
+  updatedAt                 DateTime   @updatedAt
+  creator                   Creator    @relation(fields: [creatorId], references: [id])
+  claims                    Claim[]
+
+  @@index([creatorId, status, createdAt])
 }
 
 model Claim {
-  id              String           @id @default(uuid())
-  perkId          String
-  claimantId      String
-  status          ClaimStatus      @default(PENDING_MINT)
-  nftTokenId      String?
-  nftSerial       String?
-  fulfillmentData Json?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  perk            Perk             @relation(fields: [perkId], references: [id])
-  claimant        User             @relation(fields: [claimantId], references: [id])
-  redemption      ClaimRedemption?
+  id                  String           @id @default(uuid())
+  perkId              String
+  claimantId          String
+  status              ClaimStatus      @default(CLAIMED)
+  eligibilitySnapshot Json?
+  fulfillmentNote     String?
+  fulfilledAt         DateTime?
+  version             Int              @default(1)
+  nftTokenId          String?
+  nftSerial           String?
+  fulfillmentData     Json?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  perk                Perk             @relation(fields: [perkId], references: [id])
+  claimant            User             @relation(fields: [claimantId], references: [id])
+  redemption          ClaimRedemption?
 
   @@unique([perkId, claimantId])
   @@unique([nftTokenId, nftSerial])
+  @@index([claimantId, createdAt])
 }
 
 model ClaimRedemption {

@@ -214,6 +214,8 @@ export type StageAuditEventType =
   | "challenge_published"
   | "winner_selected"
   | "reward_paid"
+  | "perk_activated"
+  | "perk_fulfilled"
   | "claim_minted"
   | "claim_redeemed";
 
