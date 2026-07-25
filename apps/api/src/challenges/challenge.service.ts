@@ -7,6 +7,7 @@ import {
   UnprocessableEntityException,
 } from "@nestjs/common";
 import { DatabaseService } from "../database/database.service.js";
+import { creatorTokenDefinition } from "../tokens/creator-token-policy.js";
 import type {
   CreateChallengeDto,
   ListChallengesQuery,
@@ -22,16 +23,39 @@ const statusMap = {
   CANCELLED: "cancelled",
 } as const;
 
-function assertBudget(amount: string, maxWinners: number): void {
+function assertRewardPolicy(
+  participationAmount: string,
+  amount: string,
+  maxWinners: number,
+): void {
+  const winnerEnabled = BigInt(amount) > 0n && maxWinners > 0;
+  const winnerDisabled = amount === "0" && maxWinners === 0;
+  if (!winnerEnabled && !winnerDisabled) {
+    throw new UnprocessableEntityException({
+      error: {
+        code: "INVALID_WINNER_REWARD_POLICY",
+        message:
+          "Winner reward and maximum winners must either both be enabled or both be zero",
+      },
+    });
+  }
+  if (participationAmount === "0" && winnerDisabled) {
+    throw new UnprocessableEntityException({
+      error: {
+        code: "REWARD_POLICY_EMPTY",
+        message: "Configure a participation reward or a winner reward",
+      },
+    });
+  }
   const budget = BigInt(amount) * BigInt(maxWinners);
   const maximum = BigInt(
     process.env.MAX_CHALLENGE_REWARD_BUDGET ?? "1000000000000",
   );
-  if (budget > maximum) {
+  if (budget > maximum || BigInt(participationAmount) > maximum) {
     throw new UnprocessableEntityException({
       error: {
         code: "REWARD_BUDGET_EXCEEDED",
-        message: `Reward budget exceeds the configured maximum of ${maximum}`,
+        message: `Winner budget or per-participant reward exceeds the configured maximum of ${maximum}`,
       },
     });
   }
@@ -91,9 +115,49 @@ export class ChallengeService {
     }
   }
 
+  private async ensureCreatorTokenProvisioning(
+    creatorId: string,
+  ): Promise<void> {
+    const creator = await this.database.creator.findUnique({
+      where: { id: creatorId },
+      include: { token: true },
+    });
+    if (!creator || creator.token) return;
+    try {
+      await this.database.$transaction(async (transaction) => {
+        const token = await transaction.creatorToken.create({
+          data: {
+            creatorId,
+            ...creatorTokenDefinition(creator.handle, creator.displayName),
+          },
+        });
+        await transaction.outboxEvent.create({
+          data: {
+            idempotencyKey: `creator-token:${creatorId}`,
+            eventType: "CREATOR_TOKEN_CREATION_REQUESTED",
+            aggregateId: token.id,
+            payload: { creatorId, creatorTokenId: token.id },
+          },
+        });
+      });
+    } catch (error) {
+      if (
+        typeof error !== "object" ||
+        error === null ||
+        !("code" in error) ||
+        error.code !== "P2002"
+      ) {
+        throw error;
+      }
+    }
+  }
+
   private toView(challenge: {
     id: string;
     creatorId: string;
+    creator: {
+      token: { hederaTokenId: string | null; status: string } | null;
+    };
     title: string;
     description: string;
     status: keyof typeof statusMap;
@@ -106,12 +170,19 @@ export class ChallengeService {
     version: number;
     createdAt: Date;
     updatedAt: Date;
-    rewardRule: { amount: string; maxWinners: number } | null;
+    rewardRule: {
+      participationAmount: string;
+      amount: string;
+      maxWinners: number;
+    } | null;
     _count: { reservations: number };
   }) {
     return {
       id: challenge.id,
       creatorId: challenge.creatorId,
+      ...(challenge.creator.token?.hederaTokenId
+        ? { creatorTokenId: challenge.creator.token.hederaTokenId }
+        : {}),
       title: challenge.title,
       description: challenge.description,
       status: statusMap[challenge.status],
@@ -119,6 +190,8 @@ export class ChallengeService {
       verificationMode: challenge.verificationMode.toLowerCase(),
       requiresWorldVerification: challenge.requiresWorldVerification,
       participationTokenAmount: challenge.participationTokenAmount,
+      participationRewardAmount:
+        challenge.rewardRule?.participationAmount ?? "0",
       rewardAmount: challenge.rewardRule?.amount ?? "0",
       maxWinners: challenge.rewardRule?.maxWinners ?? 0,
       winnerCount: challenge._count.reservations,
@@ -133,13 +206,26 @@ export class ChallengeService {
   private challengeInclude() {
     return {
       rewardRule: true,
-      _count: { select: { reservations: true } },
+      creator: {
+        select: {
+          token: { select: { hederaTokenId: true, status: true } },
+        },
+      },
+      _count: {
+        select: {
+          reservations: { where: { rewardType: "WINNER" as const } },
+        },
+      },
     } as const;
   }
 
   async create(creatorId: string | null, input: CreateChallengeDto) {
     await this.requireOwnedCreator(creatorId, input.creatorId);
-    assertBudget(input.rewardAmount, input.maxWinners);
+    assertRewardPolicy(
+      input.participationRewardAmount,
+      input.rewardAmount,
+      input.maxWinners,
+    );
     if (new Date(input.submissionDeadline) <= new Date()) {
       throw new UnprocessableEntityException({
         error: {
@@ -148,6 +234,7 @@ export class ChallengeService {
         },
       });
     }
+    await this.ensureCreatorTokenProvisioning(input.creatorId);
     const challenge = await this.database.challenge.create({
       data: {
         creatorId: input.creatorId,
@@ -161,7 +248,11 @@ export class ChallengeService {
         participationTokenAmount: input.participationTokenAmount,
         requiresWorldVerification: true,
         rewardRule: {
-          create: { amount: input.rewardAmount, maxWinners: input.maxWinners },
+          create: {
+            participationAmount: input.participationRewardAmount,
+            amount: input.rewardAmount,
+            maxWinners: input.maxWinners,
+          },
         },
       },
       include: this.challengeInclude(),
@@ -209,8 +300,12 @@ export class ChallengeService {
       }
       const amount = input.rewardAmount ?? current.rewardRule?.amount ?? "0";
       const maxWinners =
-        input.maxWinners ?? current.rewardRule?.maxWinners ?? 1;
-      assertBudget(amount, maxWinners);
+        input.maxWinners ?? current.rewardRule?.maxWinners ?? 0;
+      const participationAmount =
+        input.participationRewardAmount ??
+        current.rewardRule?.participationAmount ??
+        "0";
+      assertRewardPolicy(participationAmount, amount, maxWinners);
       const updateResult = await transaction.challenge.updateMany({
         where: {
           id: current.id,
@@ -240,7 +335,7 @@ export class ChallengeService {
       }
       await transaction.rewardRule.update({
         where: { challengeId: current.id },
-        data: { amount, maxWinners },
+        data: { participationAmount, amount, maxWinners },
       });
       return transaction.challenge.findUniqueOrThrow({
         where: { id: current.id },
@@ -251,6 +346,13 @@ export class ChallengeService {
   }
 
   async publish(challengeId: string, creatorId: string | null) {
+    const owner = await this.database.challenge.findUnique({
+      where: { id: challengeId },
+      select: { creatorId: true },
+    });
+    if (!owner) throw new NotFoundException();
+    await this.requireOwnedCreator(creatorId, owner.creatorId);
+    await this.ensureCreatorTokenProvisioning(owner.creatorId);
     const published = await this.database.$transaction(async (transaction) => {
       const current = await transaction.challenge.findUnique({
         where: { id: challengeId },
@@ -270,22 +372,29 @@ export class ChallengeService {
       if (
         current.submissionDeadline <= new Date() ||
         !current.rewardRule ||
-        BigInt(current.rewardRule.amount) <= 0n
+        (BigInt(current.rewardRule.participationAmount) <= 0n &&
+          BigInt(current.rewardRule.amount) <= 0n)
       ) {
         throw conflict(
           "CHALLENGE_NOT_PUBLISHABLE",
           "Challenge configuration is incomplete",
         );
       }
-      assertBudget(current.rewardRule.amount, current.rewardRule.maxWinners);
+      assertRewardPolicy(
+        current.rewardRule.participationAmount,
+        current.rewardRule.amount,
+        current.rewardRule.maxWinners,
+      );
       if (
-        BigInt(current.participationTokenAmount) > 0n &&
+        (BigInt(current.participationTokenAmount) > 0n ||
+          BigInt(current.rewardRule.participationAmount) > 0n ||
+          BigInt(current.rewardRule.amount) > 0n) &&
         (!current.creator.token?.hederaTokenId ||
           current.creator.token.status !== "ACTIVE")
       ) {
         throw conflict(
           "CREATOR_TOKEN_NOT_ACTIVE",
-          "An active creator token is required for a token-gated challenge",
+          "The creator token is still being prepared. Keep the worker running and retry publishing shortly",
         );
       }
       const updateResult = await transaction.challenge.updateMany({
@@ -314,6 +423,7 @@ export class ChallengeService {
           payload: {
             challengeId: challenge.id,
             creatorId: challenge.creatorId,
+            participationRewardAmount: current.rewardRule.participationAmount,
             rewardAmount: current.rewardRule.amount,
           },
         },
@@ -342,7 +452,7 @@ export class ChallengeService {
           `Challenge cannot ${action} from its current state`,
         );
       }
-      if (action === "complete") {
+      if (action === "complete" && (current.rewardRule?.maxWinners ?? 0) > 0) {
         const undecided = await transaction.submission.count({
           where: { challengeId, status: "SUBMITTED" },
         });

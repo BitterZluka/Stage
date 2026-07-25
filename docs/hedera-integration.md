@@ -16,6 +16,16 @@ It does not export SDK `Client`, transaction/receipt/key objects and has no know
 
 **Temporary MVP solution:** the API uses the provider only for safe reads/validation. The BullMQ worker initiates all system writes (`TokenCreate`, `Transfer`, `TopicMessageSubmit`) from the transactional outbox.
 
+Creator onboarding reserves the creator-token row and a
+`CREATOR_TOKEN_CREATION_REQUESTED` outbox command in one database transaction.
+Creating or publishing a challenge performs the same idempotent provisioning
+check for creator profiles that existed before this workflow was introduced.
+The worker calls `HederaProvider.createCreatorToken` and activates the token
+only after HTS confirms it. Challenge submissions and winner decisions
+similarly persist `PARTICIPATION` or `WINNER` reservations before the worker
+calls `HederaProvider.transferCredits`. Independent idempotency keys let a
+winning participant safely receive both transfers.
+
 ## HTS
 
 Creator token MVP:
@@ -28,6 +38,11 @@ Creator token MVP:
 - the memo contains only `operationId`, with no PII.
 
 Before a transfer, the account/token ID format and a positive amount are validated. Recipient token association is a product prerequisite: the UI provides instructions, the API checks Mirror Node, and the worker classifies `TOKEN_NOT_ASSOCIATED_TO_ACCOUNT` as action-required rather than endlessly retryable.
+
+When a challenge submission detects a missing relationship, the web app can
+build a `TokenAssociateTransaction` and ask the connected Hedera wallet to sign
+and execute it. The API still re-checks Mirror Node before accepting the
+submission; indexing can require a short retry delay after association.
 
 ## HCS
 

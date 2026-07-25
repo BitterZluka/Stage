@@ -1,7 +1,7 @@
 "use client";
 
 import type { DAppConnector } from "@hashgraph/hedera-wallet-connect";
-import type { HederaAccountId } from "@creator-platform/shared";
+import type { HederaAccountId, HederaTokenId } from "@creator-platform/shared";
 
 let connectorPromise: Promise<DAppConnector> | undefined;
 
@@ -104,6 +104,27 @@ export async function signHederaMessage(
     binary += String.fromCharCode(byte);
   }
   return window.btoa(binary);
+}
+
+export async function associateHederaToken(
+  accountId: HederaAccountId,
+  tokenId: HederaTokenId,
+): Promise<string> {
+  const connector = await getConnector();
+  const signer = connector.signers.find(
+    (candidate) => candidate.getAccountId().toString() === accountId,
+  );
+  if (!signer) {
+    throw new Error(
+      "Reconnect with a Hedera WalletConnect wallet to approve token association.",
+    );
+  }
+  const { TokenAssociateTransaction } = await import("@hiero-ledger/sdk");
+  const transaction = new TokenAssociateTransaction()
+    .setAccountId(accountId)
+    .setTokenIds([tokenId]);
+  const response = await transaction.executeWithSigner(signer);
+  return response.transactionId.toString();
 }
 
 export async function disconnectHederaWallet(): Promise<void> {

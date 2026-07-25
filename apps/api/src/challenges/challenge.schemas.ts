@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const tokenAmount = z
   .string()
-  .regex(/^[1-9]\d*$/, "Reward amount must be a positive integer");
+  .regex(/^(0|[1-9]\d*)$/, "Reward amount must be a non-negative integer");
 const participationTokenAmount = z
   .string()
   .regex(
@@ -22,8 +22,9 @@ export const createChallengeSchema = z
     verificationMode: z.literal("manual").default("manual"),
     startsAt: isoTimestamp,
     submissionDeadline: isoTimestamp,
+    participationRewardAmount: tokenAmount.default("0"),
     rewardAmount: tokenAmount,
-    maxWinners: z.number().int().min(1).max(1_000),
+    maxWinners: z.number().int().min(0).max(1_000),
     participationTokenAmount: participationTokenAmount.default("0"),
   })
   .superRefine((value, context) => {
@@ -34,6 +35,25 @@ export const createChallengeSchema = z
         message: "Submission deadline must be after the start time",
       });
     }
+    const hasWinnerReward =
+      BigInt(value.rewardAmount) > 0n && value.maxWinners > 0;
+    const winnerPolicyDisabled =
+      value.rewardAmount === "0" && value.maxWinners === 0;
+    if (!hasWinnerReward && !winnerPolicyDisabled) {
+      context.addIssue({
+        code: "custom",
+        path: ["maxWinners"],
+        message:
+          "Winner reward and maximum winners must either both be enabled or both be zero",
+      });
+    }
+    if (value.participationRewardAmount === "0" && winnerPolicyDisabled) {
+      context.addIssue({
+        code: "custom",
+        path: ["participationRewardAmount"],
+        message: "Configure a participation reward or a winner reward",
+      });
+    }
   });
 
 export const updateChallengeSchema = z
@@ -42,8 +62,9 @@ export const updateChallengeSchema = z
     description: z.string().trim().min(3).max(4_000).optional(),
     startsAt: isoTimestamp.optional(),
     submissionDeadline: isoTimestamp.optional(),
+    participationRewardAmount: tokenAmount.optional(),
     rewardAmount: tokenAmount.optional(),
-    maxWinners: z.number().int().min(1).max(1_000).optional(),
+    maxWinners: z.number().int().min(0).max(1_000).optional(),
     participationTokenAmount: participationTokenAmount.optional(),
     expectedVersion: z.number().int().positive(),
   })

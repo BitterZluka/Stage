@@ -48,7 +48,12 @@ export type CreatorTokenCreated = EventEnvelope<
 export type ChallengePublished = EventEnvelope<
   "ChallengePublished",
   ChallengeId,
-  { challengeId: ChallengeId; creatorId: CreatorId; rewardAmount: TokenAmount }
+  {
+    challengeId: ChallengeId;
+    creatorId: CreatorId;
+    participationRewardAmount: TokenAmount;
+    rewardAmount: TokenAmount;
+  }
 >;
 export type SubmissionCreated = EventEnvelope<
   "SubmissionCreated",
@@ -68,6 +73,7 @@ export type RewardPayoutRequested = EventEnvelope<
     challengeId: ChallengeId;
     submissionId: SubmissionId;
     recipientId: UserId;
+    rewardType: "participation" | "winner";
     amount: TokenAmount;
   }
 >;

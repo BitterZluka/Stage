@@ -37,6 +37,7 @@ test(
         verificationMode: "manual",
         startsAt: new Date(Date.now() + 60_000).toISOString(),
         submissionDeadline: new Date(Date.now() + 3_600_000).toISOString(),
+        participationRewardAmount: "0",
         rewardAmount: "100",
         maxWinners: 1,
         participationTokenAmount: "0",
@@ -65,6 +66,10 @@ test(
         await database.challenge.deleteMany({ where: { id: challengeId } });
       }
       if (creatorId) {
+        await database.outboxEvent.deleteMany({
+          where: { idempotencyKey: `creator-token:${creatorId}` },
+        });
+        await database.creatorToken.deleteMany({ where: { creatorId } });
         await database.creator.deleteMany({ where: { id: creatorId } });
       }
       if (userId) {

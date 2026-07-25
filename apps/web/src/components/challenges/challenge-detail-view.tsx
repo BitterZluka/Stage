@@ -13,9 +13,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useAuth } from "../../auth/auth-provider";
 import {
+  type HederaAccountId,
+  type HederaTokenId,
+} from "@creator-platform/shared";
+import {
   DISCOVER_CHALLENGES,
   type DiscoverChallenge,
 } from "../../content/challenges";
+import { associateHederaToken } from "../../lib/hedera-wallet";
 import { CheckIcon, ClockIcon, UsersIcon, ZapIcon } from "../icons";
 import { Badge, type BadgeColor } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -26,6 +31,7 @@ type ViewMode = "fan" | "creator";
 interface ChallengeDetail {
   id: string;
   creatorId?: string;
+  creatorTokenId?: string;
   creatorName: string;
   creatorInitials: string;
   title: string;
@@ -34,6 +40,7 @@ interface ChallengeDetail {
   submissionKind: string;
   verificationMode: string;
   requiresWorldVerification: boolean;
+  participationRewardAmount: string;
   rewardAmount: string;
   maxWinners: number;
   winnerCount: number;
@@ -69,8 +76,11 @@ function fixtureDetail(challenge: DiscoverChallenge): ChallengeDetail {
     submissionKind: challenge.format.toLowerCase(),
     verificationMode: "manual",
     requiresWorldVerification: false,
+    participationRewardAmount: String(
+      challenge.participationReward?.amount ?? 0,
+    ),
     rewardAmount: String(challenge.winnerReward?.amount ?? 0),
-    maxWinners: 1,
+    maxWinners: challenge.winnerReward ? 1 : 0,
     winnerCount: challenge.status === "completed" ? 1 : 0,
     startsAt: new Date().toISOString(),
     submissionDeadline: deadline.toISOString(),
@@ -83,6 +93,9 @@ function apiDetail(challenge: Challenge): ChallengeDetail {
   return {
     id: challenge.id,
     creatorId: challenge.creatorId,
+    ...(challenge.creatorTokenId
+      ? { creatorTokenId: challenge.creatorTokenId }
+      : {}),
     creatorName: "Creator community",
     creatorInitials: "SC",
     title: challenge.title,
@@ -91,6 +104,7 @@ function apiDetail(challenge: Challenge): ChallengeDetail {
     submissionKind: String(challenge.submissionKind),
     verificationMode: String(challenge.verificationMode),
     requiresWorldVerification: challenge.requiresWorldVerification,
+    participationRewardAmount: challenge.participationRewardAmount,
     rewardAmount: challenge.rewardAmount,
     maxWinners: challenge.maxWinners,
     winnerCount: challenge.winnerCount,
@@ -148,6 +162,7 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [associationRequired, setAssociationRequired] = useState(false);
 
   const isOwner =
     Boolean(challenge?.creatorId) &&
@@ -227,6 +242,7 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
     setBusy(true);
     setError(null);
     setNotice(null);
+    setAssociationRequired(false);
     try {
       await submissionService.createSubmission({
         challengeId: challenge.id as ChallengeId,
@@ -236,13 +252,50 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
       setText("");
       setEvidenceUrl("");
       setNotice(
-        "Submission received. The creator will review it after closing.",
+        challenge.participationRewardAmount === "0"
+          ? "Submission received. The creator will review it after closing."
+          : `Submission received. Your ${challenge.participationRewardAmount}-token participation payout is now queued for Hedera.`,
       );
     } catch (cause) {
+      if (
+        cause instanceof ApiClientError &&
+        cause.code === "TOKEN_NOT_ASSOCIATED"
+      ) {
+        setAssociationRequired(true);
+      }
       setError(
         cause instanceof ApiClientError
           ? cause.message
           : "Could not submit evidence.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function associateRewardToken() {
+    if (!challenge?.creatorTokenId || !session) return;
+    const accountId = session.user.accountIds.find((candidate) =>
+      /^0\.0\.\d+$/.test(candidate),
+    );
+    if (!accountId) {
+      setError("A canonical Hedera account is required for token association.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const transactionId = await associateHederaToken(
+        accountId as HederaAccountId,
+        challenge.creatorTokenId as HederaTokenId,
+      );
+      setAssociationRequired(false);
+      setNotice(
+        `Token association submitted (${transactionId}). Wait a few seconds for Mirror Node, then submit again.`,
+      );
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Token association failed.",
       );
     } finally {
       setBusy(false);
@@ -413,7 +466,13 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
                     ? "Verify with World and send your work."
                     : "Connect your wallet and send your work.",
                 ],
-                ["03", "Review", "The creator manually selects the winners."],
+                [
+                  "03",
+                  challenge.maxWinners > 0 ? "Review" : "Reward",
+                  challenge.maxWinners > 0
+                    ? "The creator manually selects the winners."
+                    : "Every accepted submission earns the participation reward; no winner is selected.",
+                ],
               ].map(([number, title, description]) => (
                 <div
                   key={number}
@@ -518,6 +577,17 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
                   >
                     {busy ? "Submitting…" : "Submit entry"}
                   </Button>
+                  {associationRequired && challenge.creatorTokenId && (
+                    <Button
+                      type="button"
+                      variant="mint"
+                      size="lg"
+                      disabled={busy}
+                      onClick={() => void associateRewardToken()}
+                    >
+                      Associate reward token
+                    </Button>
+                  )}
                 </form>
               )}
             </SurfaceCard>
@@ -527,18 +597,35 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
         <aside className="space-y-5">
           <SurfaceCard className="p-5">
             <p className="text-xs font-bold tracking-widest text-gray-500 uppercase">
-              Winner reward
+              Participation reward
             </p>
             <div className="mt-2 flex items-end gap-2">
               <ZapIcon size={30} className="text-stage-pink" />
               <span className="font-display text-4xl font-bold">
-                {challenge.rewardAmount}
+                {challenge.participationRewardAmount}
               </span>
               <span className="pb-1 text-sm font-bold text-gray-500">
                 tokens
               </span>
             </div>
           </SurfaceCard>
+
+          {challenge.maxWinners > 0 && (
+            <SurfaceCard className="p-5">
+              <p className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                Winner reward
+              </p>
+              <div className="mt-2 flex items-end gap-2">
+                <ZapIcon size={30} className="text-stage-pink" />
+                <span className="font-display text-4xl font-bold">
+                  {challenge.rewardAmount}
+                </span>
+                <span className="pb-1 text-sm font-bold text-gray-500">
+                  tokens
+                </span>
+              </div>
+            </SurfaceCard>
+          )}
 
           <SurfaceCard className="divide-y-2 divide-black/10">
             <StatRow
@@ -548,8 +635,12 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
             />
             <StatRow
               icon={<UsersIcon size={18} />}
-              label="Reward slots"
-              value={`${remainingSlots} of ${challenge.maxWinners} left`}
+              label={challenge.maxWinners > 0 ? "Reward slots" : "Winners"}
+              value={
+                challenge.maxWinners > 0
+                  ? `${remainingSlots} of ${challenge.maxWinners} left`
+                  : "Participation only"
+              }
             />
             <StatRow
               icon={<CheckIcon size={18} />}
@@ -621,7 +712,9 @@ function CreatorPanel({
             Review submissions
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Close entries before selecting winners. Decisions are final.
+            {challenge.maxWinners > 0
+              ? "Close entries before selecting winners. Decisions are final."
+              : "Every successful submission receives the participation reward. Close and complete without selecting a winner."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -691,7 +784,8 @@ function CreatorPanel({
                   </Badge>
                 </div>
                 {String(submission.status) === "submitted" &&
-                  challenge.status === "judging" && (
+                  challenge.status === "judging" &&
+                  challenge.maxWinners > 0 && (
                     <div className="flex gap-2">
                       <Button
                         variant="mint"

@@ -103,11 +103,11 @@ remain in PostgreSQL; HCS receives only the allowlist projection.
 |---|---|---|---|---|
 | `CreatorCreated` | creator | `creatorId, handle` | creatorId, handle | actorId, owner/contact |
 | `CreatorTokenCreated` | creatorToken | `creatorId, creatorTokenId, hederaTokenId` | listed IDs | signer/key refs, attempts |
-| `ChallengePublished` | challenge | `challengeId, creatorId, rewardAmount` | IDs, amount | draft/reviewer metadata |
+| `ChallengePublished` | challenge | `challengeId, creatorId, participationRewardAmount, rewardAmount` | IDs, amounts | draft/reviewer metadata |
 | `SubmissionCreated` | submission | `submissionId, challengeId, authorId` | not published in the MVP | authorId, text, links, files |
 | `WinnerSelected` | submission | `challengeId, submissionId, winnerId` | challengeId, submissionId | winnerId, review notes |
-| `RewardPayoutRequested` | submission | `challengeId, submissionId, recipientId, amount` | IDs, amount | recipientId/accountId |
-| `RewardPayoutConfirmed` | submission | `challengeId, submissionId, transactionId` | IDs, transactionId | receipt/debug data |
+| `RewardPayoutRequested` | submission | `challengeId, submissionId, recipientId, rewardType, amount` | IDs, rewardType, amount | recipientId/accountId |
+| `RewardPayoutConfirmed` | submission | `challengeId, submissionId, rewardType, transactionId` | IDs, rewardType, transactionId | receipt/debug data |
 | `PerkCreated` | perk | `perkId, creatorId, price` | IDs, price | fulfillment config |
 | `ClaimMintRequested` | claim | `claimId, perkId, claimantId` | claimId, perkId | claimantId, address/contact |
 | `ClaimMinted` | claim | `claimId, nftTokenId, nftSerial, transactionId` | listed IDs | receipt/debug data |
@@ -118,7 +118,8 @@ remain in PostgreSQL; HCS receives only the allowlist projection.
 
 - Creator actions: `creator.ownerUserId == actor.id`; admin bypass is permitted only through a separate audited policy.
 - Submission: authenticated, challenge is `PUBLISHED`, current time is within the window, and evidence matches the challenge kind.
-- Reward: only a creator decision during `JUDGING`; World verification (when configured), amount, recipient, and remaining winner capacity are checked and reserved atomically.
+- Participation reward: an API-accepted submission atomically reserves one `PARTICIPATION` payout and outbox command. The participant receives it regardless of a later winner decision.
+- Winner reward: optional. When configured, only a creator decision during `JUDGING` can reserve a `WINNER` payout; World verification, amount, recipient, and remaining winner capacity are checked atomically. A challenge with `maxWinners=0` can complete without reviewing submissions.
 - Perk claim: authenticated + World verified + confirmed token association/balance through Mirror; the snapshot is recorded in the DB.
 - Audit reads: the public HCS projection is publicly accessible; DB audit is available to the owner/admin with redaction.
 

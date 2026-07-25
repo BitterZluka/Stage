@@ -45,6 +45,7 @@ export interface CreatorToken extends EntityTimestamps {
 export interface Challenge extends EntityTimestamps {
   id: ChallengeId;
   creatorId: CreatorId;
+  creatorTokenId?: HederaTokenId;
   title: string;
   description: string;
   status: ChallengeStatus;
@@ -52,6 +53,7 @@ export interface Challenge extends EntityTimestamps {
   verificationMode: VerificationMode;
   requiresWorldVerification: boolean;
   participationTokenAmount: TokenAmount;
+  participationRewardAmount: TokenAmount;
   rewardAmount: TokenAmount;
   maxWinners: number;
   winnerCount: number;
@@ -78,6 +80,7 @@ export interface RewardPayout {
   challengeId: ChallengeId;
   submissionId: SubmissionId;
   recipientId: UserId;
+  rewardType: "participation" | "winner";
   amount: TokenAmount;
   status: PayoutStatus;
   transactionId?: TransactionId;

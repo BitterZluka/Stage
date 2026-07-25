@@ -8,7 +8,7 @@ import { processOneOutboxEvent } from "./main.js";
 const runDatabaseTests = process.env.RUN_DATABASE_INTEGRATION_TESTS === "1";
 
 test(
-  "reward outbox confirms one idempotent mock Hedera payout",
+  "participation reward outbox confirms one idempotent mock Hedera payout",
   { skip: !runDatabaseTests, timeout: 30_000 },
   async () => {
     const database = new PrismaClient();
@@ -69,6 +69,7 @@ test(
         challengeId: challenge.id,
         submissionId: submission.id,
         recipientId: recipient.id,
+        rewardType: "PARTICIPATION",
         amount: "100",
       },
     });
@@ -79,16 +80,17 @@ test(
         amount: "100",
       },
     });
-    const idempotencyKey = `challenge-reward:${submission.id}`;
+    const idempotencyKey = `challenge-participation-reward:${submission.id}`;
     await database.outboxEvent.create({
       data: {
         idempotencyKey,
-        eventType: "CHALLENGE_REWARD_REQUESTED",
+        eventType: "CHALLENGE_PARTICIPATION_REWARD_REQUESTED",
         aggregateId: payout.id,
         payload: {
           challengeId: challenge.id,
           submissionId: submission.id,
           payoutId: payout.id,
+          rewardType: "participation",
         },
       },
     });

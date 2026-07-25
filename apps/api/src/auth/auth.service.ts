@@ -9,6 +9,7 @@ import {
 } from "@nestjs/common";
 import { StageHederaError } from "@creator-platform/hedera";
 import { DatabaseService } from "../database/database.service.js";
+import { creatorTokenDefinition } from "../tokens/creator-token-policy.js";
 import {
   buildWalletLoginMessage,
   randomOpaqueValue,
@@ -283,11 +284,32 @@ export class AuthService {
         if (current.onboardingCompletedAt) return current;
 
         if (input.intent === "creator" && !current.creator) {
-          await transaction.creator.create({
+          const creator = await transaction.creator.create({
             data: {
               ownerUserId: current.id,
               handle: input.handle,
               displayName: input.displayName,
+              token: {
+                create: creatorTokenDefinition(
+                  input.handle,
+                  input.displayName,
+                ),
+              },
+            },
+            include: { token: true },
+          });
+          if (!creator.token) {
+            throw new Error("Creator token reservation was not created");
+          }
+          await transaction.outboxEvent.create({
+            data: {
+              idempotencyKey: `creator-token:${creator.id}`,
+              eventType: "CREATOR_TOKEN_CREATION_REQUESTED",
+              aggregateId: creator.token.id,
+              payload: {
+                creatorId: creator.id,
+                creatorTokenId: creator.token.id,
+              },
             },
           });
         }

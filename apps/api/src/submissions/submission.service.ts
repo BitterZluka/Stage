@@ -107,7 +107,10 @@ export class SubmissionService {
   ) {
     const challenge = await this.database.challenge.findUnique({
       where: { id: challengeId },
-      include: { creator: { include: { token: true } } },
+      include: {
+        creator: { include: { token: true } },
+        rewardRule: true,
+      },
     });
     if (!challenge) throw new NotFoundException();
     const now = new Date();
@@ -137,7 +140,12 @@ export class SubmissionService {
         },
       });
     }
-    if (BigInt(challenge.participationTokenAmount) > 0n) {
+    const participationRewardAmount =
+      challenge.rewardRule?.participationAmount ?? "0";
+    if (
+      BigInt(challenge.participationTokenAmount) > 0n ||
+      BigInt(participationRewardAmount) > 0n
+    ) {
       const token = challenge.creator.token;
       if (!token?.hederaTokenId || token.status !== "ACTIVE") {
         throw new UnprocessableEntityException({
@@ -160,7 +168,7 @@ export class SubmissionService {
           error: {
             code: "HEDERA_WALLET_REQUIRED",
             message:
-              "A linked Hedera account is required for this token-gated challenge",
+              "A linked Hedera account is required to receive challenge rewards",
           },
         });
       }
@@ -185,6 +193,7 @@ export class SubmissionService {
         );
       }
       if (
+        BigInt(challenge.participationTokenAmount) > 0n &&
         !meetsParticipationTokenRequirement(
           challenge.participationTokenAmount,
           balance.balance,
@@ -195,6 +204,23 @@ export class SubmissionService {
             code: "TOKEN_BALANCE_INSUFFICIENT",
             message:
               "Your linked account does not meet this challenge's token requirement",
+          },
+        });
+      }
+    }
+    if (
+      BigInt(participationRewardAmount) > 0n &&
+      challenge.requiresWorldVerification
+    ) {
+      const identity = await this.database.worldIdentity.findUnique({
+        where: { userId: authorUserId },
+        select: { id: true },
+      });
+      if (!identity) {
+        throw new ForbiddenException({
+          error: {
+            code: "WORLD_VERIFICATION_REQUIRED",
+            message: "Complete login verification before entering a challenge",
           },
         });
       }
@@ -234,6 +260,51 @@ export class SubmissionService {
               payload: { submissionId: created.id, challengeId, authorUserId },
             },
           });
+          if (BigInt(participationRewardAmount) > 0n) {
+            const reservation = await transaction.rewardReservation.create({
+              data: {
+                challengeId,
+                submissionId: created.id,
+                recipientId: authorUserId,
+                rewardType: "PARTICIPATION",
+                amount: participationRewardAmount,
+              },
+            });
+            const payout = await transaction.rewardPayout.create({
+              data: {
+                reservationId: reservation.id,
+                recipientId: authorUserId,
+                amount: participationRewardAmount,
+              },
+            });
+            await transaction.outboxEvent.create({
+              data: {
+                idempotencyKey: `challenge-participation-reward:${created.id}`,
+                eventType: "CHALLENGE_PARTICIPATION_REWARD_REQUESTED",
+                aggregateId: payout.id,
+                payload: {
+                  payoutId: payout.id,
+                  challengeId,
+                  submissionId: created.id,
+                  rewardType: "participation",
+                },
+              },
+            });
+            await transaction.auditEvent.create({
+              data: {
+                eventType: "ParticipationRewardRequested",
+                entityId: payout.id,
+                actorId: authorUserId,
+                payload: {
+                  payoutId: payout.id,
+                  challengeId,
+                  submissionId: created.id,
+                  recipientId: authorUserId,
+                  amount: participationRewardAmount,
+                },
+              },
+            });
+          }
           return created;
         },
       );
@@ -399,8 +470,17 @@ export class SubmissionService {
             "The challenge does not have a reward policy",
           );
         }
+        if (rewardRule.maxWinners === 0 || BigInt(rewardRule.amount) === 0n) {
+          throw conflict(
+            "WINNER_REWARDS_DISABLED",
+            "This challenge pays participation rewards and does not select winners",
+          );
+        }
         const reservationCount = await transaction.rewardReservation.count({
-          where: { challengeId: submission.challengeId },
+          where: {
+            challengeId: submission.challengeId,
+            rewardType: "WINNER",
+          },
         });
         if (reservationCount >= rewardRule.maxWinners) {
           throw conflict(
@@ -436,6 +516,7 @@ export class SubmissionService {
             challengeId: submission.challengeId,
             submissionId: submission.id,
             recipientId: submission.authorUserId,
+            rewardType: "WINNER",
             amount: rewardRule.amount,
           },
         });
@@ -463,6 +544,7 @@ export class SubmissionService {
               payoutId: payout.id,
               challengeId: submission.challengeId,
               submissionId: submission.id,
+              rewardType: "winner",
             },
           },
         });
@@ -486,6 +568,7 @@ export class SubmissionService {
             submissionId: submission.id,
             challengeId: submission.challengeId,
             recipientId: payout.recipientId,
+            rewardType: "winner",
             amount: payout.amount,
             status: "pending",
             requestedAt: payout.requestedAt.toISOString(),
@@ -510,6 +593,7 @@ export class SubmissionService {
   ) {
     const payout = await this.database.rewardPayout.findFirst({
       where: { reservation: { submissionId } },
+      orderBy: { requestedAt: "desc" },
       include: {
         reservation: {
           include: { challenge: { select: { creatorId: true } } },
@@ -528,6 +612,8 @@ export class SubmissionService {
       challengeId: payout.reservation.challengeId,
       submissionId: payout.reservation.submissionId,
       recipientId: payout.recipientId,
+      rewardType: payout.reservation.rewardType.toLowerCase() as
+        "participation" | "winner",
       amount: payout.amount,
       status: payoutStatus(payout.status),
       transactionId: payout.transactionId ?? undefined,

@@ -52,12 +52,12 @@ Chain column: `—` — none; `R` — Hedera/Mirror read; `W(outbox)` — write 
 | Challenges | `DELETE /challenges/:challengeId` | `{ expectedVersion }` → `204` | Creator owner; only draft | `CHALLENGE_NOT_DRAFT`, `VERSION_CONFLICT` | — | sync |
 | Challenges | `POST /challenges/:challengeId/publish` | — → view | Creator | `CHALLENGE_NOT_PUBLISHABLE`, `REWARD_BUDGET_EXCEEDED`, `CREATOR_TOKEN_NOT_ACTIVE` | HCS(outbox) | sync DB; audit eventual |
 | Challenges | `POST /challenges/:challengeId/close` | — → view | Creator | `INVALID_CHALLENGE_TRANSITION` | — | sync |
-| Challenges | `POST /challenges/:challengeId/complete` | — → view | Creator; all submissions decided | `SUBMISSIONS_PENDING` | — | sync |
+| Challenges | `POST /challenges/:challengeId/complete` | — → view | Creator; all submissions decided when winners are enabled | `SUBMISSIONS_PENDING` | — | sync |
 | Challenges | `POST /challenges/:challengeId/cancel` | — → view | Creator; non-terminal challenge | `INVALID_CHALLENGE_TRANSITION` | — | sync |
-| Submissions | `POST /challenges/:challengeId/submissions` | `CreateSubmissionDto` → `SubmissionView` | User; challenge open, one/user; creator-token threshold checked when non-zero | `CHALLENGE_NOT_ACCEPTING_SUBMISSIONS`, `SUBMISSION_ALREADY_EXISTS`, `TOKEN_NOT_ASSOCIATED`, `TOKEN_BALANCE_INSUFFICIENT` | Mirror token-balance read when gated | sync |
+| Submissions | `POST /challenges/:challengeId/submissions` | `CreateSubmissionDto` → `SubmissionView` | User; challenge open, one/user; token association required for payouts | `CHALLENGE_NOT_ACCEPTING_SUBMISSIONS`, `SUBMISSION_ALREADY_EXISTS`, `TOKEN_NOT_ASSOCIATED`, `TOKEN_BALANCE_INSUFFICIENT` | Mirror read + participation payout outbox | sync submission; payout eventual |
 | Submissions | `GET /submissions/:submissionId` | — → view | author, challenge Creator, Admin | — | — | sync |
 | Submissions | `GET /challenges/:challengeId/submissions` | query `status,cursor` → page | Creator; own challenge | — | — | sync |
-| Submissions | `POST /submissions/:submissionId/decision` | `DecisionDto` → submission/payout | Creator; own challenge in judging | `SUBMISSION_ALREADY_DECIDED`, `WINNER_LIMIT_REACHED`, `WORLD_VERIFICATION_REQUIRED` | accepted: W(outbox)+HCS | sync reservation; payout eventual |
+| Submissions | `POST /submissions/:submissionId/decision` | `DecisionDto` → submission/payout | Creator; own challenge in judging with winners enabled | `SUBMISSION_ALREADY_DECIDED`, `WINNER_LIMIT_REACHED`, `WINNER_REWARDS_DISABLED`, `WORLD_VERIFICATION_REQUIRED` | accepted: W(outbox)+HCS | sync reservation; payout eventual |
 | Rewards | `GET /submissions/:submissionId/payout` | — → `RewardPayoutView` | recipient or challenge Creator | — | R optional | eventual read |
 | Rewards | `GET /rewards` | query `cursor` → page `RewardView` | User; own rewards | — | R optional | eventual read |
 | Rewards | `GET /rewards/:rewardId` | — → `RewardView` | recipient, Creator, Admin | — | R during reconciliation | eventual read |
@@ -103,10 +103,14 @@ type CreateChallengeDto = {
   verificationMode?: "manual";
   startsAt: string;
   submissionDeadline: string;
-  rewardAmount: string;    // server binds creator token
-  maxWinners: number;      // 1 means a single-winner challenge
-  participationTokenAmount: string; // non-negative; 0 means open participation
+  participationRewardAmount: string; // paid to every accepted submission
+  rewardAmount: string;    // optional per-winner reward; 0 disables winners
+  maxWinners: number;      // 0 disables winner selection
+  participationTokenAmount: string; // amount users must hold; 0 means open participation
 };
+
+// rewardAmount and maxWinners are either both positive or both zero.
+// At least one participation or winner reward must be positive.
 
 type CreateSubmissionDto = {
   text?: string;           // required for TEXT challenges
@@ -134,6 +138,10 @@ type CreateClaimDto = {
   accountId?: string;      // must be a verified wallet owned by this user
 };
 ```
+
+A successful submission atomically creates its participation payout and outbox
+command. The worker later transfers the creator token through
+`packages/hedera`.
 
 Response views do not contain another user's email, World proof/nullifier, signer/key references, treasury account internals, or raw Hedera receipts. `CreatorTokenView.chainStatus` and `RewardView.chainStatus` explicitly distinguish `PENDING`, `CONFIRMED`, and `FAILED`.
 

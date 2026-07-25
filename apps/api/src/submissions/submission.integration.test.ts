@@ -18,7 +18,7 @@ test(
       database,
       new ManualChallengeVerifier(),
       {
-        getTokenBalance: async () => ({ balance: 0n, associated: false }),
+        getTokenBalance: async () => ({ balance: 0n, associated: true }),
       },
     );
     const suffix = randomUUID().slice(0, 8);
@@ -33,11 +33,55 @@ test(
       const fanOne = await database.user.create({ data: {} });
       const fanTwo = await database.user.create({ data: {} });
       userIds.push(creatorUser.id, fanOne.id, fanTwo.id);
+      await database.wallet.createMany({
+        data: [
+          {
+            userId: fanOne.id,
+            accountId: `0.0.${Date.now() + 1}`,
+            verifiedAt: new Date(),
+          },
+          {
+            userId: fanTwo.id,
+            accountId: `0.0.${Date.now() + 2}`,
+            verifiedAt: new Date(),
+          },
+        ],
+      });
+      await database.worldIdentity.createMany({
+        data: [
+          {
+            userId: fanOne.id,
+            provider: "test",
+            protocolVersion: "4",
+            credentialType: "selfie",
+            signalHash: randomUUID(),
+            verifiedAt: new Date(),
+          },
+          {
+            userId: fanTwo.id,
+            provider: "test",
+            protocolVersion: "4",
+            credentialType: "selfie",
+            signalHash: randomUUID(),
+            verifiedAt: new Date(),
+          },
+        ],
+      });
       const creator = await database.creator.create({
         data: {
           ownerUserId: creatorUser.id,
           handle: `challenge_test_${suffix}`,
           displayName: "Challenge Test",
+          token: {
+            create: {
+              hederaTokenId: `0.0.${Date.now()}`,
+              name: "Challenge Test Credits",
+              symbol: "CTC",
+              decimals: 0,
+              totalSupply: "1000000",
+              status: "ACTIVE",
+            },
+          },
         },
       });
       creatorId = creator.id;
@@ -49,6 +93,7 @@ test(
         verificationMode: "manual",
         startsAt: new Date(Date.now() - 60_000).toISOString(),
         submissionDeadline: new Date(Date.now() + 3_600_000).toISOString(),
+        participationRewardAmount: "10",
         rewardAmount: "100",
         maxWinners: 1,
         participationTokenAmount: "0",
@@ -70,6 +115,15 @@ test(
         evidenceUrl: "https://example.com/video/two",
       });
       submissionIds.push(first.id, second.id);
+      assert.equal(
+        await database.rewardReservation.count({
+          where: {
+            challengeId: challenge.id,
+            rewardType: "PARTICIPATION",
+          },
+        }),
+        2,
+      );
       await challenges.transition(challenge.id, creator.id, "close");
 
       const results = await Promise.allSettled([
@@ -89,7 +143,10 @@ test(
       );
       assert.equal(
         await database.rewardReservation.count({
-          where: { challengeId: challenge.id },
+          where: {
+            challengeId: challenge.id,
+            rewardType: "WINNER",
+          },
         }),
         1,
       );
@@ -143,8 +200,13 @@ test(
         await database.challenge.deleteMany({ where: { id: challengeId } });
       }
       if (creatorId) {
+        await database.creatorToken.deleteMany({ where: { creatorId } });
         await database.creator.deleteMany({ where: { id: creatorId } });
       }
+      await database.worldIdentity.deleteMany({
+        where: { userId: { in: userIds } },
+      });
+      await database.wallet.deleteMany({ where: { userId: { in: userIds } } });
       await database.user.deleteMany({ where: { id: { in: userIds } } });
       await database.$disconnect();
     }

@@ -34,6 +34,7 @@ interface ChallengeFormValue {
   submissionKind: Challenge["submissionKind"];
   startsAt: IsoTimestamp;
   submissionDeadline: IsoTimestamp;
+  participationRewardAmount: string;
   rewardAmount: string;
   maxWinners: number;
   participationTokenAmount: string;
@@ -186,6 +187,8 @@ export function ChallengeManager() {
           verificationMode: VerificationMode.Manual,
           startsAt: value.startsAt,
           submissionDeadline: value.submissionDeadline,
+          participationRewardAmount:
+            value.participationRewardAmount as TokenAmount,
           rewardAmount: value.rewardAmount as TokenAmount,
           maxWinners: value.maxWinners,
           participationTokenAmount:
@@ -198,6 +201,8 @@ export function ChallengeManager() {
           description: value.description,
           startsAt: value.startsAt,
           submissionDeadline: value.submissionDeadline,
+          participationRewardAmount:
+            value.participationRewardAmount as TokenAmount,
           rewardAmount: value.rewardAmount as TokenAmount,
           maxWinners: value.maxWinners,
           participationTokenAmount:
@@ -478,16 +483,20 @@ function ManagedChallengeCard({
         <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 border-y-2 border-black/10 py-4 text-sm">
           <div>
             <dt className="text-xs font-bold text-gray-500 uppercase">
-              Reward
+              Participation reward
             </dt>
-            <dd className="mt-1 font-bold">{challenge.rewardAmount} credits</dd>
+            <dd className="mt-1 font-bold">
+              {challenge.participationRewardAmount} credits
+            </dd>
           </div>
           <div>
             <dt className="text-xs font-bold text-gray-500 uppercase">
-              Winners
+              Winner reward
             </dt>
             <dd className="mt-1 font-bold">
-              {challenge.winnerCount}/{challenge.maxWinners}
+              {challenge.maxWinners === 0
+                ? "No winner selection"
+                : `${challenge.rewardAmount} credits · ${challenge.winnerCount}/${challenge.maxWinners}`}
             </dd>
           </div>
           <div className="col-span-2">
@@ -617,6 +626,12 @@ function ChallengeEditor({
       ? toDateTimeLocal(challenge.submissionDeadline)
       : defaultLocalDate(7 * 24 * 60 * 60_000),
   );
+  const [participationRewardAmount, setParticipationRewardAmount] = useState(
+    challenge?.participationRewardAmount ?? "25",
+  );
+  const [winnerRewardEnabled, setWinnerRewardEnabled] = useState(
+    challenge ? challenge.maxWinners > 0 : true,
+  );
   const [rewardAmount, setRewardAmount] = useState(
     challenge?.rewardAmount ?? "100",
   );
@@ -635,6 +650,12 @@ function ChallengeEditor({
       setFormError("The submission deadline must be after the start time.");
       return;
     }
+    if (!winnerRewardEnabled && participationRewardAmount === "0") {
+      setFormError(
+        "Set a participation reward when winner selection is disabled.",
+      );
+      return;
+    }
     try {
       await onSave({
         title: title.trim(),
@@ -644,8 +665,9 @@ function ChallengeEditor({
         submissionDeadline: new Date(
           submissionDeadline,
         ).toISOString() as IsoTimestamp,
-        rewardAmount,
-        maxWinners: Number(maxWinners),
+        participationRewardAmount,
+        rewardAmount: winnerRewardEnabled ? rewardAmount : "0",
+        maxWinners: winnerRewardEnabled ? Number(maxWinners) : 0,
         participationTokenAmount,
       });
     } catch (cause) {
@@ -736,16 +758,21 @@ function ChallengeEditor({
             </label>
 
             <label className="grid gap-1.5 text-sm font-bold">
-              Maximum winners
+              Tokens required to participate
               <input
                 required
-                type="number"
-                min={1}
-                max={1000}
-                value={maxWinners}
-                onChange={(event) => setMaxWinners(event.target.value)}
+                inputMode="numeric"
+                pattern="0|[1-9][0-9]*"
+                value={participationTokenAmount}
+                onChange={(event) =>
+                  setParticipationTokenAmount(event.target.value)
+                }
                 className="rounded-xl border-2 border-black px-4 py-3 font-normal"
               />
+              <span className="text-xs font-normal text-gray-500">
+                Use 0 for open participation. This is an entry requirement, not
+                a payment.
+              </span>
             </label>
           </div>
 
@@ -772,40 +799,70 @@ function ChallengeEditor({
             </label>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <label className="grid gap-1.5 text-sm font-bold">
-              Reward per winner
-              <input
-                required
-                inputMode="numeric"
-                pattern="[1-9][0-9]*"
-                value={rewardAmount}
-                onChange={(event) => setRewardAmount(event.target.value)}
-                className="rounded-xl border-2 border-black px-4 py-3 font-normal"
-              />
-              <span className="text-xs font-normal text-gray-500">
-                Enter the reward in the token&apos;s smallest unit.
-              </span>
-            </label>
+          <label className="grid gap-1.5 text-sm font-bold">
+            Participation reward per accepted submission
+            <input
+              required
+              inputMode="numeric"
+              pattern="0|[1-9][0-9]*"
+              value={participationRewardAmount}
+              onChange={(event) =>
+                setParticipationRewardAmount(event.target.value)
+              }
+              className="rounded-xl border-2 border-black px-4 py-3 font-normal"
+            />
+            <span className="text-xs font-normal text-gray-500">
+              Every user who successfully submits receives this many creator
+              tokens, whether or not they win.
+            </span>
+          </label>
 
-            <label className="grid gap-1.5 text-sm font-bold">
-              Tokens required to participate
-              <input
-                required
-                inputMode="numeric"
-                pattern="0|[1-9][0-9]*"
-                value={participationTokenAmount}
-                onChange={(event) =>
-                  setParticipationTokenAmount(event.target.value)
-                }
-                className="rounded-xl border-2 border-black px-4 py-3 font-normal"
-              />
-              <span className="text-xs font-normal text-gray-500">
-                Use 0 for open participation. Balances are checked before
-                submission.
+          <label className="flex items-start gap-3 rounded-2xl border-2 border-black bg-stage-yellow p-4 font-bold">
+            <input
+              type="checkbox"
+              checked={winnerRewardEnabled}
+              onChange={(event) => setWinnerRewardEnabled(event.target.checked)}
+              className="mt-1 h-5 w-5 accent-black"
+            />
+            <span>
+              Also select winners
+              <span className="mt-1 block text-xs font-normal text-gray-700">
+                Turn this off for participation-only challenges with no winner.
               </span>
-            </label>
-          </div>
+            </span>
+          </label>
+
+          {winnerRewardEnabled && (
+            <div className="grid gap-5 sm:grid-cols-2">
+              <label className="grid gap-1.5 text-sm font-bold">
+                Reward per winner
+                <input
+                  required
+                  inputMode="numeric"
+                  pattern="[1-9][0-9]*"
+                  value={rewardAmount}
+                  onChange={(event) => setRewardAmount(event.target.value)}
+                  className="rounded-xl border-2 border-black px-4 py-3 font-normal"
+                />
+                <span className="text-xs font-normal text-gray-500">
+                  Enter the reward in the token&apos;s smallest unit.
+                </span>
+              </label>
+
+              <label className="grid gap-1.5 text-sm font-bold">
+                Maximum winners
+                <input
+                  required
+                  type="number"
+                  min={1}
+                  max={1000}
+                  value={maxWinners}
+                  onChange={(event) => setMaxWinners(event.target.value)}
+                  className="rounded-xl border-2 border-black px-4 py-3 font-normal"
+                />
+              </label>
+            </div>
+          )}
 
           {formError && (
             <p

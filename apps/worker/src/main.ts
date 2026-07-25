@@ -68,6 +68,97 @@ async function claimNext(database: PrismaClient) {
   });
 }
 
+async function processCreatorToken(
+  database: PrismaClient,
+  provider: HederaProvider,
+  event: {
+    aggregateId: string;
+    idempotencyKey: string;
+    attempts: number;
+  },
+): Promise<void> {
+  const token = await database.creatorToken.findUnique({
+    where: { id: event.aggregateId },
+  });
+  if (!token) throw new Error("Creator token reservation does not exist");
+  if (token.status === "ACTIVE" && token.hederaTokenId) return;
+  const treasuryAccountId = process.env.HEDERA_TREASURY_ACCOUNT_ID;
+  if (!treasuryAccountId) {
+    throw new Error("Creator token creation requires a treasury account");
+  }
+  const request = {
+    treasuryAccountId,
+    name: token.name,
+    symbol: token.symbol,
+    decimals: token.decimals,
+    initialSupply: token.totalSupply,
+  };
+  const requestHash = createHash("sha256")
+    .update(JSON.stringify(request))
+    .digest("hex");
+  await database.blockchainTransaction.upsert({
+    where: { idempotencyKey: event.idempotencyKey },
+    create: {
+      idempotencyKey: event.idempotencyKey,
+      operationType: "CREATE_CREATOR_TOKEN",
+      requestHash,
+      status: "PROCESSING",
+      attempts: 1,
+    },
+    update: { status: "PROCESSING", attempts: { increment: 1 } },
+  });
+  await database.creatorToken.update({
+    where: { id: token.id },
+    data: { status: "PROCESSING" },
+  });
+
+  const result = await provider.createCreatorToken({
+    operation: operation(event.idempotencyKey, "operator", event.attempts),
+    treasuryAccountId: treasuryAccountId as HederaAccountId,
+    name: token.name,
+    symbol: token.symbol,
+    decimals: token.decimals,
+    initialSupply: token.totalSupply as TokenAmount,
+  });
+  if (result.status !== "success") {
+    throw new Error(`Hedera token creation ended with status ${result.status}`);
+  }
+  await database.$transaction([
+    database.blockchainTransaction.update({
+      where: { idempotencyKey: event.idempotencyKey },
+      data: {
+        status: "CONFIRMED",
+        hederaTransactionId: result.transactionId,
+        result: { status: result.status, tokenId: result.tokenId },
+      },
+    }),
+    database.creatorToken.update({
+      where: { id: token.id },
+      data: {
+        hederaTokenId: result.tokenId,
+        status: "ACTIVE",
+      },
+    }),
+    database.auditEvent.create({
+      data: {
+        eventType: "CreatorTokenCreated",
+        entityId: token.id,
+        payload: {
+          creatorId: token.creatorId,
+          creatorTokenId: token.id,
+          tokenId: result.tokenId,
+          transactionId: result.transactionId,
+        },
+        publicPayload: {
+          creatorId: token.creatorId,
+          tokenId: result.tokenId,
+          transactionId: result.transactionId,
+        },
+      },
+    }),
+  ]);
+}
+
 async function processReward(
   database: PrismaClient,
   provider: HederaProvider,
@@ -95,7 +186,9 @@ async function processReward(
   if (!payout) throw new Error("Reward payout does not exist");
   if (payout.status === "CONFIRMED") return;
   const tokenId = payout.reservation.challenge.creator.token?.hederaTokenId;
-  const recipientAccountId = payout.recipient.wallets[0]?.accountId;
+  const recipientAccountId = payout.recipient.wallets.find((wallet) =>
+    /^0\.0\.\d+$/.test(wallet.accountId),
+  )?.accountId;
   const treasuryAccountId = process.env.HEDERA_TREASURY_ACCOUNT_ID;
   if (!tokenId || !recipientAccountId || !treasuryAccountId) {
     throw new Error(
@@ -116,7 +209,10 @@ async function processReward(
     where: { idempotencyKey: event.idempotencyKey },
     create: {
       idempotencyKey: event.idempotencyKey,
-      operationType: "CHALLENGE_REWARD_TRANSFER",
+      operationType:
+        payout.reservation.rewardType === "PARTICIPATION"
+          ? "CHALLENGE_PARTICIPATION_REWARD_TRANSFER"
+          : "CHALLENGE_WINNER_REWARD_TRANSFER",
       requestHash,
       status: "PROCESSING",
       attempts: 1,
@@ -167,10 +263,12 @@ async function processReward(
           payoutId: payout.id,
           challengeId: payout.reservation.challengeId,
           submissionId: payout.reservation.submissionId,
+          rewardType: payout.reservation.rewardType.toLowerCase(),
           transactionId: result.transactionId,
         },
         publicPayload: {
           challengeId: payout.reservation.challengeId,
+          rewardType: payout.reservation.rewardType.toLowerCase(),
           transactionId: result.transactionId,
         },
       },
@@ -183,6 +281,7 @@ async function processReward(
         payload: {
           challengeId: payout.reservation.challengeId,
           creatorId: payout.reservation.challenge.creatorId,
+          rewardType: payout.reservation.rewardType.toLowerCase(),
           transactionId: result.transactionId,
         },
       },
@@ -228,6 +327,9 @@ async function processHcs(
   if (typeof source.transactionId === "string") {
     publicData.transactionId = source.transactionId;
   }
+  if (source.rewardType === "participation" || source.rewardType === "winner") {
+    publicData.rewardType = source.rewardType;
+  }
   await provider.submitHcsAuditMessage({
     operation: operation(event.idempotencyKey, "operator", event.attempts),
     topicId,
@@ -271,8 +373,23 @@ async function markFailed(
         ),
       },
     });
-    if (event.eventType === "CHALLENGE_REWARD_REQUESTED") {
+    if (
+      event.eventType === "CHALLENGE_REWARD_REQUESTED" ||
+      event.eventType === "CHALLENGE_PARTICIPATION_REWARD_REQUESTED"
+    ) {
       await transaction.rewardPayout.updateMany({
+        where: { id: event.aggregateId },
+        data: { status: terminal ? "FAILED" : "PENDING" },
+      });
+      await transaction.blockchainTransaction.updateMany({
+        where: { idempotencyKey: event.idempotencyKey },
+        data: {
+          status: terminal ? "FAILED" : "PENDING",
+          lastErrorCode: message.slice(0, 200),
+        },
+      });
+    } else if (event.eventType === "CREATOR_TOKEN_CREATION_REQUESTED") {
+      await transaction.creatorToken.updateMany({
         where: { id: event.aggregateId },
         data: { status: terminal ? "FAILED" : "PENDING" },
       });
@@ -294,7 +411,12 @@ export async function processOneOutboxEvent(
   const event = await claimNext(database);
   if (!event) return false;
   try {
-    if (event.eventType === "CHALLENGE_REWARD_REQUESTED") {
+    if (event.eventType === "CREATOR_TOKEN_CREATION_REQUESTED") {
+      await processCreatorToken(database, provider, event);
+    } else if (
+      event.eventType === "CHALLENGE_REWARD_REQUESTED" ||
+      event.eventType === "CHALLENGE_PARTICIPATION_REWARD_REQUESTED"
+    ) {
       await processReward(database, provider, event);
     } else if (
       event.eventType === "HCS_CHALLENGE_PUBLISHED" ||

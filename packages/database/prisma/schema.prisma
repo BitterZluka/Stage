@@ -43,6 +43,11 @@ enum OperationStatus {
   NEEDS_REVIEW
 }
 
+enum RewardType {
+  PARTICIPATION
+  WINNER
+}
+
 enum ClaimStatus {
   CLAIMED
   FULFILLED
@@ -172,36 +177,38 @@ model Challenge {
 }
 
 model Submission {
-  id                String             @id @default(uuid())
-  challengeId       String
-  authorUserId      String
-  status            SubmissionStatus   @default(SUBMITTED)
-  text              String?
-  artifactRefs      Json?
-  reviewNote        String?
-  reviewedAt        DateTime?
-  version           Int                @default(1)
-  createdAt         DateTime           @default(now())
-  challenge         Challenge          @relation(fields: [challengeId], references: [id])
-  author            User               @relation(fields: [authorUserId], references: [id])
-  rewardReservation RewardReservation?
+  id                 String              @id @default(uuid())
+  challengeId        String
+  authorUserId       String
+  status             SubmissionStatus    @default(SUBMITTED)
+  text               String?
+  artifactRefs       Json?
+  reviewNote         String?
+  reviewedAt         DateTime?
+  version            Int                 @default(1)
+  createdAt          DateTime            @default(now())
+  challenge          Challenge           @relation(fields: [challengeId], references: [id])
+  author             User                @relation(fields: [authorUserId], references: [id])
+  rewardReservations RewardReservation[]
 
   @@unique([challengeId, authorUserId])
 }
 
 model RewardRule {
-  id          String    @id @default(uuid())
-  challengeId String    @unique
-  amount      String
-  maxWinners  Int       @default(1)
-  challenge   Challenge @relation(fields: [challengeId], references: [id])
+  id                  String    @id @default(uuid())
+  challengeId         String    @unique
+  participationAmount String    @default("0")
+  amount              String
+  maxWinners          Int       @default(1)
+  challenge           Challenge @relation(fields: [challengeId], references: [id])
 }
 
 model RewardReservation {
   id           String          @id @default(uuid())
   challengeId  String
-  submissionId String          @unique
+  submissionId String
   recipientId  String
+  rewardType   RewardType
   amount       String
   status       OperationStatus @default(PENDING)
   createdAt    DateTime        @default(now())
@@ -210,7 +217,8 @@ model RewardReservation {
   recipient    User            @relation(fields: [recipientId], references: [id])
   payout       RewardPayout?
 
-  @@unique([challengeId, recipientId])
+  @@unique([submissionId, rewardType])
+  @@unique([challengeId, recipientId, rewardType])
 }
 
 model RewardPayout {

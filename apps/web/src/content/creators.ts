@@ -47,6 +47,7 @@ export interface DiscoverCreator {
   followersCount: number;
   activeChallengesCount: number;
   perksCount: number;
+  verified?: boolean;
   featured?: boolean;
   trending?: boolean;
   recentlyActive?: boolean;

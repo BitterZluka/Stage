@@ -21,6 +21,7 @@ import {
   type TokenAmount,
   type TransactionId,
 } from "@creator-platform/shared";
+import { createHash } from "node:crypto";
 
 const transactionResult = (key: string): HederaTransactionResult => ({
   transactionId: `mock-${key}` as TransactionId,
@@ -35,9 +36,18 @@ export class MockHederaProvider implements HederaProvider {
   async createCreatorToken(
     input: CreateCreatorTokenInput,
   ): Promise<CreateCreatorTokenResult> {
+    const tokenNumber =
+      (BigInt(
+        `0x${createHash("sha256")
+          .update(input.operation.idempotencyKey)
+          .digest("hex")
+          .slice(0, 12)}`,
+      ) %
+        900_000_000n) +
+      100_000_000n;
     return {
       ...transactionResult(input.operation.idempotencyKey),
-      tokenId: "0.0.1001" as HederaTokenId,
+      tokenId: `0.0.${tokenNumber}` as HederaTokenId,
     };
   }
 

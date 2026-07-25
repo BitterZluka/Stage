@@ -78,6 +78,7 @@ export interface CreateChallengeInput {
   submissionKind: SubmissionKind;
   verificationMode?: VerificationMode;
   startsAt: IsoTimestamp;
+  participationRewardAmount: TokenAmount;
   rewardAmount: TokenAmount;
   maxWinners: number;
   submissionDeadline: IsoTimestamp;
@@ -95,6 +96,7 @@ export interface UpdateChallengeInput {
   description?: string;
   startsAt?: IsoTimestamp;
   submissionDeadline?: IsoTimestamp;
+  participationRewardAmount?: TokenAmount;
   rewardAmount?: TokenAmount;
   maxWinners?: number;
   participationTokenAmount?: TokenAmount;
