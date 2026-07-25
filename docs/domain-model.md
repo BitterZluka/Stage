@@ -17,8 +17,8 @@ Contexts communicate through IDs and events. Prisma relations do not give one mo
 ## Primary states
 
 - `CreatorToken`: `DRAFT -> CREATING -> ACTIVE | FAILED | PAUSED`.
-- `Challenge`: `DRAFT -> PUBLISHED -> CLOSED -> ARCHIVED`.
-- `Submission`: `DRAFT -> SUBMITTED -> ACCEPTED | REJECTED`; an accepted submission may transition to `REWARD_PENDING -> REWARDED | REWARD_FAILED`.
+- `Challenge`: `DRAFT -> PUBLISHED -> JUDGING -> COMPLETED`; `DRAFT`, `PUBLISHED`, and `JUDGING` may transition to terminal `CANCELLED`.
+- `Submission`: `SUBMITTED -> WINNER | REJECTED`; winner selection atomically reserves one of the challenge's bounded reward slots.
 - `PerkClaim`: `PENDING -> ELIGIBLE -> FULFILLING -> FULFILLED`, or `REJECTED/FAILED/CANCELLED`.
 - `WorldIdentity`: absent or verified; rejected/expired proof attempts are not persisted as identities.
 
@@ -106,8 +106,8 @@ remain in PostgreSQL; HCS receives only the allowlist projection.
 ## Policies
 
 - Creator actions: `creator.ownerUserId == actor.id`; admin bypass is permitted only through a separate audited policy.
-- Submission: authenticated + World verified, challenge is `PUBLISHED`, and the current time is within the window.
-- Reward: only a system use case after acceptance; the client does not specify token/amount/recipient.
+- Submission: authenticated, challenge is `PUBLISHED`, current time is within the window, and evidence matches the challenge kind.
+- Reward: only a creator decision during `JUDGING`; World verification (when configured), amount, recipient, and remaining winner capacity are checked and reserved atomically.
 - Perk claim: authenticated + World verified + confirmed token association/balance through Mirror; the snapshot is recorded in the DB.
 - Audit reads: the public HCS projection is publicly accessible; DB audit is available to the owner/admin with redaction.
 

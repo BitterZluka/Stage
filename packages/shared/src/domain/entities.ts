@@ -20,7 +20,9 @@ import type {
   CreatorStatus,
   PayoutStatus,
   PerkStatus,
+  SubmissionKind,
   SubmissionStatus,
+  VerificationMode,
 } from "../enums/status.js";
 
 export interface Creator extends EntityTimestamps {
@@ -46,8 +48,15 @@ export interface Challenge extends EntityTimestamps {
   title: string;
   description: string;
   status: ChallengeStatus;
+  submissionKind: SubmissionKind;
+  verificationMode: VerificationMode;
+  requiresWorldVerification: boolean;
   rewardAmount: TokenAmount;
+  maxWinners: number;
+  winnerCount: number;
+  startsAt: IsoTimestamp;
   submissionDeadline: IsoTimestamp;
+  version: number;
 }
 
 export interface Submission extends EntityTimestamps {
@@ -55,8 +64,12 @@ export interface Submission extends EntityTimestamps {
   challengeId: ChallengeId;
   authorId: UserId;
   status: SubmissionStatus;
-  /** Public storage reference only; never an access-controlled or signed URL. */
-  publicArtifactRef: string;
+  text?: string;
+  /** Public evidence URL only; never an access-controlled or signed URL. */
+  evidenceUrl?: string;
+  reviewNote?: string;
+  reviewedAt?: IsoTimestamp;
+  version: number;
 }
 
 export interface RewardPayout {

@@ -15,8 +15,10 @@ import type {
   RewardPayout,
   Submission,
   SubmissionId,
+  SubmissionKind,
   TokenAmount,
   UserId,
+  VerificationMode,
 } from "@creator-platform/shared";
 import type {
   WorldRpContextResponse,
@@ -58,6 +60,7 @@ export interface SessionView {
     primaryIntent: OnboardingIntent | null;
     onboardingRequired: boolean;
     hasCreatorProfile: boolean;
+    creatorId: CreatorId | null;
   };
   expiresAt: IsoTimestamp;
 }
@@ -72,15 +75,40 @@ export interface CreateChallengeInput {
   creatorId: CreatorId;
   title: string;
   description: string;
+  submissionKind: SubmissionKind;
+  verificationMode?: VerificationMode;
+  startsAt: IsoTimestamp;
   rewardAmount: TokenAmount;
+  maxWinners: number;
   submissionDeadline: IsoTimestamp;
+  requiresWorldVerification: boolean;
 }
 
 export interface CreateSubmissionInput {
   challengeId: ChallengeId;
   text?: string;
-  attachmentIds?: string[];
+  evidenceUrl?: string;
 }
+
+export interface UpdateChallengeInput {
+  title?: string;
+  description?: string;
+  startsAt?: IsoTimestamp;
+  submissionDeadline?: IsoTimestamp;
+  rewardAmount?: TokenAmount;
+  maxWinners?: number;
+  requiresWorldVerification?: boolean;
+  expectedVersion: number;
+}
+
+export type SubmissionDecisionInput =
+  | { decision: "accept"; expectedVersion: number }
+  | {
+      decision: "reject";
+      expectedVersion: number;
+      reasonCode: string;
+      note?: string;
+    };
 
 export interface MutationOptions {
   idempotencyKey: IdempotencyKey;

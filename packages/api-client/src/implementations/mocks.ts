@@ -11,10 +11,12 @@ import type {
   PageRequest,
   RewardPayout,
   SubmissionId,
+  UpdateChallengeInput,
   WorldProofInput,
   WorldRpContextView,
   WorldVerificationView,
 } from "../contracts.js";
+import { ChallengeStatus } from "@creator-platform/shared";
 import type { ChallengeService } from "../services/challenge-service.js";
 import type { CreatorService } from "../services/creator-service.js";
 import type { RewardService } from "../services/reward-service.js";
@@ -59,6 +61,36 @@ export class MockChallengeService implements ChallengeService {
     if (!challenge) throw new Error("Challenge not found");
     return { ...challenge, status: "published" as Challenge["status"] };
   }
+
+  async updateChallenge(
+    id: ChallengeId,
+    input: UpdateChallengeInput,
+  ): Promise<Challenge> {
+    const challenge = await this.getChallenge(id);
+    if (!challenge) throw new Error("Challenge not found");
+    return { ...challenge, ...input, version: challenge.version + 1 };
+  }
+
+  async closeChallenge(id: ChallengeId): Promise<Challenge> {
+    return this.withStatus(id, ChallengeStatus.Judging);
+  }
+
+  async completeChallenge(id: ChallengeId): Promise<Challenge> {
+    return this.withStatus(id, ChallengeStatus.Completed);
+  }
+
+  async cancelChallenge(id: ChallengeId): Promise<Challenge> {
+    return this.withStatus(id, ChallengeStatus.Cancelled);
+  }
+
+  private async withStatus(
+    id: ChallengeId,
+    status: Challenge["status"],
+  ): Promise<Challenge> {
+    const challenge = await this.getChallenge(id);
+    if (!challenge) throw new Error("Challenge not found");
+    return { ...challenge, status };
+  }
 }
 
 export class MockCreatorService implements CreatorService {
@@ -92,7 +124,7 @@ export class MockRewardService implements RewardService {
 
   async selectWinner(
     submissionId: SubmissionId,
-    _options: MutationOptions,
+    _options: MutationOptions & { expectedVersion: number },
   ): Promise<OperationAccepted> {
     void _options;
     return { operationId: `mock-reward-${submissionId}`, status: "pending" };

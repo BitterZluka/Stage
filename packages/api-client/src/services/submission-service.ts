@@ -4,6 +4,7 @@ import type {
   Page,
   PageRequest,
   Submission,
+  SubmissionDecisionInput,
   SubmissionId,
 } from "../contracts.js";
 
@@ -14,4 +15,8 @@ export interface SubmissionService {
     challengeId: ChallengeId,
     page?: Partial<PageRequest>,
   ): Promise<Page<Submission>>;
+  decideSubmission(
+    submissionId: SubmissionId,
+    input: SubmissionDecisionInput,
+  ): Promise<{ submission: Submission; payout: unknown | null }>;
 }

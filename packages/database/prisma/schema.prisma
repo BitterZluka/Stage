@@ -21,6 +21,19 @@ enum SubmissionStatus {
   REJECTED
 }
 
+enum SubmissionKind {
+  LINK
+  VIDEO
+  IMAGE
+  TEXT
+}
+
+enum VerificationMode {
+  MANUAL
+  AUTOMATIC
+  HYBRID
+}
+
 enum OperationStatus {
   PENDING
   PROCESSING
@@ -41,6 +54,11 @@ enum ClaimStatus {
 enum UserIntent {
   FAN
   CREATOR
+}
+
+enum CreatorStatus {
+  ACTIVE
+  SUSPENDED
 }
 
 model User {
@@ -100,6 +118,7 @@ model Creator {
   ownerUserId String        @unique
   handle      String        @unique
   displayName String
+  status      CreatorStatus @default(ACTIVE)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   owner       User          @relation(fields: [ownerUserId], references: [id])
@@ -130,8 +149,13 @@ model Challenge {
   title                     String
   description               String
   status                    ChallengeStatus     @default(DRAFT)
+  submissionKind            SubmissionKind
+  verificationMode          VerificationMode    @default(MANUAL)
+  verificationConfig        Json?
+  startsAt                  DateTime
   submissionDeadline        DateTime
   requiresWorldVerification Boolean             @default(true)
+  version                   Int                 @default(1)
   createdAt                 DateTime            @default(now())
   updatedAt                 DateTime            @updatedAt
   creator                   Creator             @relation(fields: [creatorId], references: [id])
@@ -148,6 +172,9 @@ model Submission {
   status            SubmissionStatus   @default(SUBMITTED)
   text              String?
   artifactRefs      Json?
+  reviewNote        String?
+  reviewedAt        DateTime?
+  version           Int                @default(1)
   createdAt         DateTime           @default(now())
   challenge         Challenge          @relation(fields: [challengeId], references: [id])
   author            User               @relation(fields: [authorUserId], references: [id])

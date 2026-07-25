@@ -16,6 +16,7 @@ export interface AuthenticatedUserView {
   primaryIntent: "fan" | "creator" | null;
   onboardingRequired: boolean;
   hasCreatorProfile: boolean;
+  creatorId: string | null;
 }
 
 export interface AuthSessionView {

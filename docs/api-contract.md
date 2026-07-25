@@ -45,16 +45,18 @@ Chain column: `—` — none; `R` — Hedera/Mirror read; `W(outbox)` — write 
 | Tokens | `GET /creators/:creatorId/token` | — → `CreatorTokenView` | Public | `TOKEN_NOT_CREATED` | R optional | eventual read |
 | Tokens | `GET /operations/:operationId` | — → `OperationView` | User; actor/affected creator/admin | — | R during reconciliation | eventual read |
 | Challenges | `GET /challenges` | filters `creatorId,status,cursor` → page | Public | `FILTER_INVALID` | — | sync |
-| Challenges | `POST /creators/:creatorId/challenges` | `CreateChallengeDto` → `ChallengeView` | Creator | `TOKEN_NOT_ACTIVE`, `REWARD_INVALID` | — | sync |
-| Challenges | `GET /challenges/:challengeId` | — → `ChallengeView` | Public; draft only Creator | — | — | sync |
+| Challenges | `POST /challenges` | `CreateChallengeDto` → `ChallengeView` | Creator; `creatorId` must be owned | `CREATOR_INACTIVE`, `REWARD_BUDGET_EXCEEDED` | — | sync |
+| Challenges | `GET /challenges/:challengeId` | — → `ChallengeView` | Public; published, judging, or completed | — | — | sync |
 | Challenges | `PATCH /challenges/:challengeId` | `UpdateChallengeDto` → view | Creator; only draft | `CHALLENGE_NOT_DRAFT`, `VERSION_CONFLICT` | — | sync |
-| Challenges | `POST /challenges/:challengeId/publish` | `{ expectedVersion }` → view | Creator | `WINDOW_INVALID`, `INSUFFICIENT_TREASURY` | HCS(outbox) | sync DB; audit eventual |
-| Challenges | `POST /challenges/:challengeId/close` | `{ expectedVersion }` → view | Creator | `ALREADY_CLOSED` | — | sync |
-| Submissions | `POST /challenges/:challengeId/submissions` | `CreateSubmissionDto` → `SubmissionView` | World; challenge open, one/user | `CHALLENGE_CLOSED`, `SUBMISSION_EXISTS` | — | sync |
-| Submissions | `POST /submissions/:submissionId/submit` | `{ expectedVersion }` → view | World; author | `CONTENT_REQUIRED`, `ALREADY_SUBMITTED` | HCS(outbox) | sync DB; audit eventual |
+| Challenges | `POST /challenges/:challengeId/publish` | — → view | Creator | `CHALLENGE_NOT_PUBLISHABLE`, `REWARD_BUDGET_EXCEEDED` | HCS(outbox) | sync DB; audit eventual |
+| Challenges | `POST /challenges/:challengeId/close` | — → view | Creator | `INVALID_CHALLENGE_TRANSITION` | — | sync |
+| Challenges | `POST /challenges/:challengeId/complete` | — → view | Creator; all submissions decided | `SUBMISSIONS_PENDING` | — | sync |
+| Challenges | `POST /challenges/:challengeId/cancel` | — → view | Creator; non-terminal challenge | `INVALID_CHALLENGE_TRANSITION` | — | sync |
+| Submissions | `POST /challenges/:challengeId/submissions` | `CreateSubmissionDto` → `SubmissionView` | User; challenge open, one/user | `CHALLENGE_NOT_ACCEPTING_SUBMISSIONS`, `SUBMISSION_ALREADY_EXISTS` | — | sync |
 | Submissions | `GET /submissions/:submissionId` | — → view | author, challenge Creator, Admin | — | — | sync |
 | Submissions | `GET /challenges/:challengeId/submissions` | query `status,cursor` → page | Creator; own challenge | — | — | sync |
-| Submissions | `POST /submissions/:submissionId/decision` | `DecisionDto` → view/operation | Creator; own challenge | `ALREADY_REVIEWED`, `TREASURY_UNAVAILABLE` | accepted: W(outbox)+HCS | accepted 202; rejected sync |
+| Submissions | `POST /submissions/:submissionId/decision` | `DecisionDto` → submission/payout | Creator; own challenge in judging | `SUBMISSION_ALREADY_DECIDED`, `WINNER_LIMIT_REACHED`, `WORLD_VERIFICATION_REQUIRED` | accepted: W(outbox)+HCS | sync reservation; payout eventual |
+| Rewards | `GET /submissions/:submissionId/payout` | — → `RewardPayoutView` | recipient or challenge Creator | — | R optional | eventual read |
 | Rewards | `GET /rewards` | query `cursor` → page `RewardView` | User; own rewards | — | R optional | eventual read |
 | Rewards | `GET /rewards/:rewardId` | — → `RewardView` | recipient, Creator, Admin | — | R during reconciliation | eventual read |
 | World | `POST /world/rp-context` | `{ hederaAccountId? }` → public IDKit config + RP context | User; linked wallet | `WALLET_REQUIRED`, `CONFIGURATION_ERROR` | — | sync |
@@ -88,21 +90,26 @@ type CreateTokenDto = {
 };
 
 type CreateChallengeDto = {
+  creatorId: string;
   title: string;
   description: string;
+  submissionKind: "link" | "video" | "image" | "text";
+  verificationMode?: "manual";
   startsAt: string;
-  endsAt: string;
+  submissionDeadline: string;
   rewardAmount: string;    // server binds creator token
+  maxWinners: number;      // 1 means a single-winner challenge
+  requiresWorldVerification: boolean;
 };
 
 type CreateSubmissionDto = {
-  text: string;            // 1..5000
-  attachmentIds?: string[];
+  text?: string;           // required for TEXT challenges
+  evidenceUrl?: string;    // public HTTPS URL for LINK/VIDEO/IMAGE
 };
 
 type DecisionDto =
-  | { decision: "ACCEPT"; expectedVersion: number }
-  | { decision: "REJECT"; reasonCode: string; note?: string; expectedVersion: number };
+  | { decision: "accept"; expectedVersion: number }
+  | { decision: "reject"; reasonCode: string; note?: string; expectedVersion: number };
 
 type WorldProofDto = {
   proof: unknown;          // forwarded unchanged to the server adapter

@@ -8,7 +8,7 @@ import type {
 export interface RewardService {
   selectWinner(
     submissionId: SubmissionId,
-    options: MutationOptions,
+    options: MutationOptions & { expectedVersion: number },
   ): Promise<OperationAccepted>;
   getPayout(submissionId: SubmissionId): Promise<RewardPayout | null>;
 }

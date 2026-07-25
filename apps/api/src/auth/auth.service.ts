@@ -49,7 +49,7 @@ function toSessionView(
     primaryIntent: "FAN" | "CREATOR" | null;
     onboardingCompletedAt: Date | null;
     wallets: { accountId: string }[];
-    creator: unknown | null;
+    creator: { id: string } | null;
   },
   expiresAt: Date,
 ): AuthSessionView {
@@ -62,6 +62,7 @@ function toSessionView(
         : null,
       onboardingRequired: user.onboardingCompletedAt === null,
       hasCreatorProfile: user.creator !== null,
+      creatorId: user.creator?.id ?? null,
     },
     expiresAt: expiresAt.toISOString(),
   };

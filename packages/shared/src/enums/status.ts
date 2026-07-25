@@ -17,6 +17,19 @@ export enum SubmissionStatus {
   Rejected = "rejected",
 }
 
+export enum SubmissionKind {
+  Link = "link",
+  Video = "video",
+  Image = "image",
+  Text = "text",
+}
+
+export enum VerificationMode {
+  Manual = "manual",
+  Automatic = "automatic",
+  Hybrid = "hybrid",
+}
+
 export enum PayoutStatus {
   Pending = "pending",
   Requested = "requested",

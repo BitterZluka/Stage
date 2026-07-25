@@ -2,6 +2,7 @@ import type {
   Challenge,
   ChallengeId,
   CreateChallengeInput,
+  CreateSubmissionInput,
   CreateCreatorInput,
   Creator,
   CreatorId,
@@ -11,7 +12,10 @@ import type {
   Page,
   PageRequest,
   RewardPayout,
+  Submission,
+  SubmissionDecisionInput,
   SubmissionId,
+  UpdateChallengeInput,
   WorldProofInput,
   WorldRpContextView,
   WorldVerificationView,
@@ -20,6 +24,7 @@ import type { AuthService } from "../services/auth-service.js";
 import type { ChallengeService } from "../services/challenge-service.js";
 import type { CreatorService } from "../services/creator-service.js";
 import type { RewardService } from "../services/reward-service.js";
+import type { SubmissionService } from "../services/submission-service.js";
 import type { WorldService } from "../services/world-service.js";
 
 export class ApiClientError extends Error {
@@ -124,28 +129,103 @@ export class ApiChallengeService
   implements ChallengeService
 {
   listChallenges(
-    _filters?: Partial<PageRequest> & {
+    filters?: Partial<PageRequest> & {
       creatorId?: CreatorId;
       status?: Challenge["status"];
     },
   ): Promise<Page<Challenge>> {
-    void _filters;
-    return this.notImplemented();
+    const query = new URLSearchParams();
+    if (filters?.creatorId) query.set("creatorId", filters.creatorId);
+    if (filters?.status) query.set("status", filters.status);
+    if (filters?.cursor) query.set("cursor", filters.cursor);
+    if (filters?.limit) query.set("limit", String(filters.limit));
+    const suffix = query.size ? `?${query}` : "";
+    return this.request(`/challenges${suffix}`);
   }
 
-  getChallenge(_id: ChallengeId): Promise<Challenge | null> {
-    void _id;
-    return this.notImplemented();
+  async getChallenge(id: ChallengeId): Promise<Challenge | null> {
+    try {
+      return await this.request(`/challenges/${id}`);
+    } catch (error) {
+      if (error instanceof ApiClientError && error.status === 404) return null;
+      throw error;
+    }
   }
 
-  createChallenge(_input: CreateChallengeInput): Promise<Challenge> {
-    void _input;
-    return this.notImplemented();
+  createChallenge(input: CreateChallengeInput): Promise<Challenge> {
+    return this.request("/challenges", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   }
 
-  publishChallenge(_id: ChallengeId): Promise<Challenge> {
-    void _id;
-    return this.notImplemented();
+  updateChallenge(
+    id: ChallengeId,
+    input: UpdateChallengeInput,
+  ): Promise<Challenge> {
+    return this.request(`/challenges/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+  }
+
+  publishChallenge(id: ChallengeId): Promise<Challenge> {
+    return this.request(`/challenges/${id}/publish`, { method: "POST" });
+  }
+
+  closeChallenge(id: ChallengeId): Promise<Challenge> {
+    return this.request(`/challenges/${id}/close`, { method: "POST" });
+  }
+
+  completeChallenge(id: ChallengeId): Promise<Challenge> {
+    return this.request(`/challenges/${id}/complete`, { method: "POST" });
+  }
+
+  cancelChallenge(id: ChallengeId): Promise<Challenge> {
+    return this.request(`/challenges/${id}/cancel`, { method: "POST" });
+  }
+}
+
+export class ApiSubmissionService
+  extends ApiServiceContract
+  implements SubmissionService
+{
+  createSubmission(input: CreateSubmissionInput): Promise<Submission> {
+    const { challengeId, ...evidence } = input;
+    return this.request(`/challenges/${challengeId}/submissions`, {
+      method: "POST",
+      body: JSON.stringify(evidence),
+    });
+  }
+
+  async getSubmission(id: SubmissionId): Promise<Submission | null> {
+    try {
+      return await this.request(`/submissions/${id}`);
+    } catch (error) {
+      if (error instanceof ApiClientError && error.status === 404) return null;
+      throw error;
+    }
+  }
+
+  listChallengeSubmissions(
+    challengeId: ChallengeId,
+    page?: Partial<PageRequest>,
+  ): Promise<Page<Submission>> {
+    const query = new URLSearchParams();
+    if (page?.cursor) query.set("cursor", page.cursor);
+    if (page?.limit) query.set("limit", String(page.limit));
+    const suffix = query.size ? `?${query}` : "";
+    return this.request(`/challenges/${challengeId}/submissions${suffix}`);
+  }
+
+  decideSubmission(
+    id: SubmissionId,
+    input: SubmissionDecisionInput,
+  ): Promise<{ submission: Submission; payout: unknown | null }> {
+    return this.request(`/submissions/${id}/decision`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
   }
 }
 
@@ -183,17 +263,31 @@ export class ApiRewardService
   implements RewardService
 {
   selectWinner(
-    _submissionId: SubmissionId,
-    _options: MutationOptions,
+    submissionId: SubmissionId,
+    options: MutationOptions & { expectedVersion: number },
   ): Promise<OperationAccepted> {
-    void _submissionId;
-    void _options;
-    return this.notImplemented();
+    return this.request<{
+      payout: { id: string };
+    }>(`/submissions/${submissionId}/decision`, {
+      method: "POST",
+      headers: { "Idempotency-Key": options.idempotencyKey },
+      body: JSON.stringify({
+        decision: "accept",
+        expectedVersion: options.expectedVersion,
+      }),
+    }).then((result) => ({
+      operationId: result.payout.id,
+      status: "pending",
+    }));
   }
 
-  getPayout(_submissionId: SubmissionId): Promise<RewardPayout | null> {
-    void _submissionId;
-    return this.notImplemented();
+  async getPayout(submissionId: SubmissionId): Promise<RewardPayout | null> {
+    try {
+      return await this.request(`/submissions/${submissionId}/payout`);
+    } catch (error) {
+      if (error instanceof ApiClientError && error.status === 404) return null;
+      throw error;
+    }
   }
 }
 
