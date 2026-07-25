@@ -1,17 +1,21 @@
-import { MockChallengeService } from "@creator-platform/api-client";
+import { CreatorPerks } from "../components/home/creator-perks";
+import { FeaturedCreators } from "../components/home/featured-creators";
+import { FinalCta } from "../components/home/final-cta";
+import { Hero } from "../components/home/hero";
+import { HowItWorks } from "../components/home/how-it-works";
+import { Leaderboard } from "../components/home/leaderboard";
+import { TrendingChallenges } from "../components/home/trending-challenges";
 
-const challengeService = new MockChallengeService();
-
-export default async function HomePage() {
-  const challenges = await challengeService.listChallenges();
-
+export default function HomePage() {
   return (
-    <main>
-      <p>Stage 0 foundation</p>
-      <h1>Creator Platform</h1>
-      <p>
-        {challenges.items.length} mock challenges are ready for UI integration.
-      </p>
-    </main>
+    <div className="mx-auto max-w-7xl px-4 pb-24">
+      <Hero />
+      <TrendingChallenges />
+      <FeaturedCreators />
+      <HowItWorks />
+      <CreatorPerks />
+      <Leaderboard />
+      <FinalCta />
+    </div>
   );
 }

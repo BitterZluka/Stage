@@ -1,16 +1,92 @@
 @import "tailwindcss";
 
+@theme {
+  --color-stage-cyan: #00d4ff;
+  --color-stage-pink: #ff9ecd;
+  --color-stage-lavender: #c4b5fd;
+  --color-stage-mint: #7fffd4;
+  --color-stage-aqua: #a5f3fc;
+  --color-stage-yellow: #ffe566;
+  --color-stage-bg: #eafcff;
+  --font-display: var(--font-righteous), "Righteous", ui-sans-serif, sans-serif;
+}
+
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
+  background: var(--color-stage-bg);
+  color: #0a0a0a;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-main {
-  max-width: 48rem;
-  margin: 0 auto;
-  padding: 4rem 1.5rem;
+/* Hard offset shadow used by cards/buttons throughout the STAGE UI. */
+.shadow-offset {
+  box-shadow: 4px 4px 0 #000;
+}
+
+/* Subtle pixel-grid texture used behind hero/CTA sections. */
+.bg-pixel-grid {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      #000 0,
+      #000 1px,
+      transparent 1px,
+      transparent 32px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      #000 0,
+      #000 1px,
+      transparent 1px,
+      transparent 32px
+    );
+}
+
+/* CRT-style scanlines used as a light decorative overlay. */
+.bg-scanlines {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    #000 2px,
+    #000 3px
+  );
+}
+
+/* Holographic gradient text for accent headline words. */
+.text-holo-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--color-stage-cyan),
+    var(--color-stage-pink),
+    var(--color-stage-lavender)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes stage-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-14px);
+    }
+  }
+
+  .animate-stage-float {
+    animation: stage-float 3.2s ease-in-out infinite;
+  }
 }
