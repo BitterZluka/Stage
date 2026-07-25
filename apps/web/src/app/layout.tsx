@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Righteous } from "next/font/google";
 import { AuthProvider } from "../auth/auth-provider";
+import { OnboardingModal } from "../components/onboarding-modal";
 import { SiteHeader } from "../components/site-header";
 import "./globals.css";
 
@@ -30,6 +31,7 @@ export default function RootLayout({
             Skip to content
           </a>
           <SiteHeader />
+          <OnboardingModal />
           <main id="main-content">{children}</main>
         </AuthProvider>
       </body>

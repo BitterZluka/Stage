@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   HttpException,
   HttpStatus,
   Inject,
@@ -14,6 +15,7 @@ import {
   sha256,
 } from "./auth.crypto.js";
 import type {
+  CompleteOnboardingInput,
   CreateLoginChallengeInput,
   CreateSessionInput,
 } from "./auth.schemas.js";
@@ -30,6 +32,39 @@ function positiveInteger(value: string | undefined, fallback: number): number {
 
 function unauthorized(code: string, message: string): UnauthorizedException {
   return new UnauthorizedException({ error: { code, message } });
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "P2002"
+  );
+}
+
+function toSessionView(
+  user: {
+    id: string;
+    primaryIntent: "FAN" | "CREATOR" | null;
+    onboardingCompletedAt: Date | null;
+    wallets: { accountId: string }[];
+    creator: unknown | null;
+  },
+  expiresAt: Date,
+): AuthSessionView {
+  return {
+    user: {
+      id: user.id,
+      accountIds: user.wallets.map((wallet) => wallet.accountId).sort(),
+      primaryIntent: user.primaryIntent
+        ? (user.primaryIntent.toLowerCase() as "fan" | "creator")
+        : null,
+      onboardingRequired: user.onboardingCompletedAt === null,
+      hasCreatorProfile: user.creator !== null,
+    },
+    expiresAt: expiresAt.toISOString(),
+  };
 }
 
 @Injectable()
@@ -202,7 +237,7 @@ export class AuthService {
           publicKey: verification.publicKey,
           verifiedAt: now,
         },
-        include: { user: { include: { wallets: true } } },
+        include: { user: { include: { wallets: true, creator: true } } },
       });
       await transaction.session.create({
         data: {
@@ -216,34 +251,81 @@ export class AuthService {
 
     return {
       token,
-      view: {
-        user: {
-          id: result.id,
-          accountIds: result.wallets.map((wallet) => wallet.accountId).sort(),
-        },
-        expiresAt: expiresAt.toISOString(),
-      },
+      view: toSessionView(result, expiresAt),
     };
+  }
+
+  async completeOnboarding(
+    token: string | undefined,
+    input: CompleteOnboardingInput,
+  ): Promise<AuthSessionView> {
+    if (!token) {
+      throw unauthorized("UNAUTHENTICATED", "A valid session is required");
+    }
+    const session = await this.database.session.findUnique({
+      where: { tokenHash: sha256(token) },
+      include: { user: { include: { wallets: true, creator: true } } },
+    });
+    if (!session || session.revokedAt || session.expiresAt <= new Date()) {
+      throw unauthorized("UNAUTHENTICATED", "A valid session is required");
+    }
+    if (session.user.onboardingCompletedAt) {
+      return toSessionView(session.user, session.expiresAt);
+    }
+
+    try {
+      const user = await this.database.$transaction(async (transaction) => {
+        const current = await transaction.user.findUniqueOrThrow({
+          where: { id: session.userId },
+          include: { wallets: true, creator: true },
+        });
+        if (current.onboardingCompletedAt) return current;
+
+        if (input.intent === "creator" && !current.creator) {
+          await transaction.creator.create({
+            data: {
+              ownerUserId: current.id,
+              handle: input.handle,
+              displayName: input.displayName,
+            },
+          });
+        }
+        await transaction.user.update({
+          where: { id: current.id },
+          data: {
+            primaryIntent: input.intent === "creator" ? "CREATOR" : "FAN",
+            onboardingCompletedAt: new Date(),
+          },
+        });
+        return transaction.user.findUniqueOrThrow({
+          where: { id: current.id },
+          include: { wallets: true, creator: true },
+        });
+      });
+      return toSessionView(user, session.expiresAt);
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictException({
+          error: {
+            code: "HANDLE_TAKEN",
+            message: "This creator handle is already taken",
+          },
+        });
+      }
+      throw error;
+    }
   }
 
   async getSession(token: string | undefined): Promise<AuthSessionView | null> {
     if (!token) return null;
     const session = await this.database.session.findUnique({
       where: { tokenHash: sha256(token) },
-      include: { user: { include: { wallets: true } } },
+      include: { user: { include: { wallets: true, creator: true } } },
     });
     if (!session || session.revokedAt || session.expiresAt <= new Date()) {
       return null;
     }
-    return {
-      user: {
-        id: session.user.id,
-        accountIds: session.user.wallets
-          .map((wallet) => wallet.accountId)
-          .sort(),
-      },
-      expiresAt: session.expiresAt.toISOString(),
-    };
+    return toSessionView(session.user, session.expiresAt);
   }
 
   async revokeSession(token: string | undefined): Promise<void> {

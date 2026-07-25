@@ -38,18 +38,25 @@ enum ClaimStatus {
   FAILED
 }
 
+enum UserIntent {
+  FAN
+  CREATOR
+}
+
 model User {
-  id                 String              @id @default(uuid())
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  wallets            Wallet[]
-  creator            Creator?
-  submissions        Submission[]
-  rewardReservations RewardReservation[]
-  rewardPayouts      RewardPayout[]
-  worldIdentity      WorldIdentity?
-  claims             Claim[]
-  sessions           Session[]
+  id                    String              @id @default(uuid())
+  primaryIntent         UserIntent?
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  wallets               Wallet[]
+  creator               Creator?
+  submissions           Submission[]
+  rewardReservations    RewardReservation[]
+  rewardPayouts         RewardPayout[]
+  worldIdentity         WorldIdentity?
+  claims                Claim[]
+  sessions              Session[]
 }
 
 model Wallet {

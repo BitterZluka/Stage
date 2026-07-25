@@ -45,10 +45,19 @@ export interface OperationAccepted {
   status: "pending";
 }
 
+export type OnboardingIntent = "fan" | "creator";
+
+export type CompleteOnboardingInput =
+  | { intent: "fan" }
+  | { intent: "creator"; handle: string; displayName: string };
+
 export interface SessionView {
   user: {
     id: UserId;
     accountIds: HederaAccountId[];
+    primaryIntent: OnboardingIntent | null;
+    onboardingRequired: boolean;
+    hasCreatorProfile: boolean;
   };
   expiresAt: IsoTimestamp;
 }

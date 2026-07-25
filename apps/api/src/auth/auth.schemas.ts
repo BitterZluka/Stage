@@ -23,7 +23,24 @@ export const createSessionSchema = z.object({
     ),
 });
 
+export const completeOnboardingSchema = z.discriminatedUnion("intent", [
+  z.object({ intent: z.literal("fan") }),
+  z.object({
+    intent: z.literal("creator"),
+    handle: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(
+        /^[a-z0-9][a-z0-9_-]{2,29}$/,
+        "Handle must be 3-30 lowercase letters, numbers, underscores, or hyphens",
+      ),
+    displayName: z.string().trim().min(2).max(60),
+  }),
+]);
+
 export type CreateLoginChallengeInput = z.infer<
   typeof createLoginChallengeSchema
 >;
 export type CreateSessionInput = z.infer<typeof createSessionSchema>;
+export type CompleteOnboardingInput = z.infer<typeof completeOnboardingSchema>;

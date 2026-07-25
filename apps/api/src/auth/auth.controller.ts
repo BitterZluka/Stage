@@ -14,6 +14,7 @@ import {
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { ZodType } from "zod";
 import {
+  completeOnboardingSchema,
   createLoginChallengeSchema,
   createSessionSchema,
 } from "./auth.schemas.js";
@@ -69,6 +70,20 @@ export class AuthController {
       expires: new Date(result.view.expiresAt),
     });
     return result.view;
+  }
+
+  @Post("onboarding")
+  @HttpCode(200)
+  completeOnboarding(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    reply.header("Cache-Control", "no-store");
+    return this.authService.completeOnboarding(
+      request.cookies[SESSION_COOKIE_NAME],
+      parseBody(completeOnboardingSchema, body),
+    );
   }
 
   @Get("me")

@@ -1,5 +1,5 @@
 import type { EvmAddress, HederaAccountId } from "@creator-platform/shared";
-import type { SessionView } from "../contracts.js";
+import type { CompleteOnboardingInput, SessionView } from "../contracts.js";
 
 export interface AuthService {
   requestLoginMessage(accountId: HederaAccountId | EvmAddress): Promise<{
@@ -11,6 +11,7 @@ export interface AuthService {
     challengeId: string;
     signature: string;
   }): Promise<SessionView>;
+  completeOnboarding(input: CompleteOnboardingInput): Promise<SessionView>;
   getSession(): Promise<SessionView | null>;
   signOut(): Promise<void>;
 }

@@ -63,7 +63,7 @@ abstract class ApiServiceContract {
       } | null;
       throw new ApiClientError(
         body?.error?.message ??
-        `API request failed with status ${response.status}`,
+          `API request failed with status ${response.status}`,
         response.status,
         body?.error?.code,
       );
@@ -96,6 +96,13 @@ export class ApiAuthService extends ApiServiceContract implements AuthService {
     });
   }
 
+  completeOnboarding(input: Parameters<AuthService["completeOnboarding"]>[0]) {
+    return this.request<SessionView>("/auth/onboarding", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
   async getSession(): Promise<SessionView | null> {
     try {
       return await this.request<SessionView>("/auth/me");
@@ -114,7 +121,8 @@ export class ApiAuthService extends ApiServiceContract implements AuthService {
 
 export class ApiChallengeService
   extends ApiServiceContract
-  implements ChallengeService {
+  implements ChallengeService
+{
   listChallenges(
     _filters?: Partial<PageRequest> & {
       creatorId?: CreatorId;
@@ -143,7 +151,8 @@ export class ApiChallengeService
 
 export class ApiCreatorService
   extends ApiServiceContract
-  implements CreatorService {
+  implements CreatorService
+{
   listCreators(_page?: Partial<PageRequest>): Promise<Page<Creator>> {
     void _page;
     return this.notImplemented();
@@ -171,7 +180,8 @@ export class ApiCreatorService
 
 export class ApiRewardService
   extends ApiServiceContract
-  implements RewardService {
+  implements RewardService
+{
   selectWinner(
     _submissionId: SubmissionId,
     _options: MutationOptions,
@@ -189,7 +199,8 @@ export class ApiRewardService
 
 export class ApiWorldService
   extends ApiServiceContract
-  implements WorldService {
+  implements WorldService
+{
   requestVerification(
     input: {
       hederaAccountId?: string;

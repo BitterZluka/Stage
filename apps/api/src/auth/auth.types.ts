@@ -13,6 +13,9 @@ export interface WalletSignatureVerifier {
 export interface AuthenticatedUserView {
   id: string;
   accountIds: string[];
+  primaryIntent: "fan" | "creator" | null;
+  onboardingRequired: boolean;
+  hasCreatorProfile: boolean;
 }
 
 export interface AuthSessionView {

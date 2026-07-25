@@ -1,6 +1,10 @@
 "use client";
 
-import { ApiAuthService, type SessionView } from "@creator-platform/api-client";
+import {
+  ApiAuthService,
+  type CompleteOnboardingInput,
+  type SessionView,
+} from "@creator-platform/api-client";
 import {
   createContext,
   useCallback,
@@ -28,6 +32,7 @@ interface AuthContextValue {
   loading: boolean;
   authenticating: boolean;
   login: (wallet: WalletKind, options?: LoginOptions) => Promise<void>;
+  completeOnboarding: (input: CompleteOnboardingInput) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -105,9 +110,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [authService]);
 
+  const completeOnboarding = useCallback(
+    async (input: CompleteOnboardingInput) => {
+      setSession(await authService.completeOnboarding(input));
+    },
+    [authService],
+  );
+
   const value = useMemo(
-    () => ({ session, loading, authenticating, login, logout }),
-    [session, loading, authenticating, login, logout],
+    () => ({
+      session,
+      loading,
+      authenticating,
+      login,
+      completeOnboarding,
+      logout,
+    }),
+    [session, loading, authenticating, login, completeOnboarding, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
