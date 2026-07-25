@@ -2,6 +2,7 @@
 
 import {
   ApiAuthService,
+  ApiWorldService,
   type CompleteOnboardingInput,
   type SessionView,
 } from "@creator-platform/api-client";
@@ -31,8 +32,14 @@ interface AuthContextValue {
   session: SessionView | null;
   loading: boolean;
   authenticating: boolean;
+  worldVerificationLoading: boolean;
+  worldVerified: boolean;
+  worldVerificationDismissed: boolean;
   login: (wallet: WalletKind, options?: LoginOptions) => Promise<void>;
   completeOnboarding: (input: CompleteOnboardingInput) => Promise<void>;
+  beginWorldVerification: () => void;
+  dismissWorldVerification: () => void;
+  markWorldVerified: () => void;
   logout: () => Promise<void>;
 }
 
@@ -46,9 +53,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ),
     [],
   );
+  const worldService = useMemo(
+    () =>
+      new ApiWorldService(
+        process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1",
+      ),
+    [],
+  );
   const [session, setSession] = useState<SessionView | null>(null);
   const [loading, setLoading] = useState(true);
   const [authenticating, setAuthenticating] = useState(false);
+  const [worldVerificationLoading, setWorldVerificationLoading] =
+    useState(false);
+  const [worldVerified, setWorldVerified] = useState(false);
+  const [worldVerificationDismissed, setWorldVerificationDismissed] =
+    useState(false);
 
   useEffect(() => {
     let active = true;
@@ -56,7 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void authService
       .getSession()
       .then((currentSession) => {
-        if (active) setSession(currentSession);
+        if (active) {
+          setWorldVerificationLoading(currentSession !== null);
+          setSession(currentSession);
+        }
       })
       .catch(() => {
         if (active) setSession(null);
@@ -69,6 +91,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
     };
   }, [authService]);
+
+  useEffect(() => {
+    let active = true;
+    if (!session) {
+      setWorldVerificationLoading(false);
+      setWorldVerified(false);
+      return;
+    }
+
+    setWorldVerificationLoading(true);
+    void worldService
+      .getVerification()
+      .then((status) => {
+        if (active) {
+          setWorldVerified((current) => current || status.verified);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setWorldVerificationLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [session, worldService]);
 
   const login = useCallback(
     async (wallet: WalletKind, options?: LoginOptions) => {
@@ -93,6 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           challengeId,
           signature,
         });
+        setWorldVerified(false);
+        setWorldVerificationLoading(true);
+        setWorldVerificationDismissed(false);
         setSession(newSession);
       } finally {
         setAuthenticating(false);
@@ -106,6 +157,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await authService.signOut();
     } finally {
       setSession(null);
+      setWorldVerified(false);
+      setWorldVerificationLoading(false);
+      setWorldVerificationDismissed(false);
       await disconnectHederaWallet().catch(() => undefined);
     }
   }, [authService]);
@@ -117,16 +171,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [authService],
   );
 
+  const beginWorldVerification = useCallback(() => {
+    setWorldVerificationDismissed(false);
+  }, []);
+
+  const dismissWorldVerification = useCallback(() => {
+    setWorldVerificationDismissed(true);
+  }, []);
+
+  const markWorldVerified = useCallback(() => {
+    setWorldVerified(true);
+    setWorldVerificationLoading(false);
+    setWorldVerificationDismissed(false);
+  }, []);
+
   const value = useMemo(
     () => ({
       session,
       loading,
       authenticating,
+      worldVerificationLoading,
+      worldVerified,
+      worldVerificationDismissed,
       login,
       completeOnboarding,
+      beginWorldVerification,
+      dismissWorldVerification,
+      markWorldVerified,
       logout,
     }),
-    [session, loading, authenticating, login, completeOnboarding, logout],
+    [
+      session,
+      loading,
+      authenticating,
+      worldVerificationLoading,
+      worldVerified,
+      worldVerificationDismissed,
+      login,
+      completeOnboarding,
+      beginWorldVerification,
+      dismissWorldVerification,
+      markWorldVerified,
+      logout,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

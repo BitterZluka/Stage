@@ -23,9 +23,11 @@ Before the demo:
 
 ### 1. Sign-in and human verification — Boris
 
-1. Boris signs in and opens his profile: `GET /auth/me`.
-2. He starts World Selfie Check: the request is bound to the user's action and signal.
-3. After a successful proof, the UI displays `Verified human`; the raw selfie/proof is neither displayed nor stored.
+1. Boris connects his wallet and signs the one-time login message.
+2. STAGE immediately presents the post-login World Selfie Check; the request is
+   bound to the user's action and verified wallet.
+3. After a successful proof, profile onboarding continues and the UI displays
+   `Verified human`; the raw selfie/proof is neither displayed nor stored.
 
 Briefly demonstrate the failure branch: replaying the proof returns `PROOF_REPLAYED`, and the user remains in a safe state.
 

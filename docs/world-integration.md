@@ -3,10 +3,12 @@
 ## Boundary and flow
 
 World is an eligibility provider, not Stage authentication and not wallet
-ownership. The integrated flow is:
+ownership. The integrated post-login flow is:
 
 ```text
-authenticated Stage session
+wallet connected and ownership signature verified
+  -> authenticated Stage session created
+  -> automatic post-login Selfie Check prompt
   -> verified Hedera wallet selected by backend
   -> POST /api/v1/world/rp-context
   -> IDKit Selfie Check in browser
@@ -166,10 +168,19 @@ real/fake provider label. It never returns replay keys or proof material.
 
 ## Frontend
 
-`/eligibility` requests a context and opens `IDKitRequestWidget` with
-`selfieCheckLegacy`. IDKit provides desktop QR and mobile hand-off behavior.
-The widget's `handleVerify` calls Stage before `onSuccess`; therefore the UI
-does not become verified merely because IDKit returned a payload.
+After wallet login creates a Stage session, the root layout checks
+`/world/status`. Unverified users receive an automatic post-login prompt before
+profile onboarding. They may dismiss it and remain signed in, but protected
+reward actions remain unavailable until verification succeeds. The modal
+requests a context and opens
+`IDKitRequestWidget` with `selfieCheckLegacy`. IDKit provides desktop QR and
+mobile hand-off behavior. The widget's `handleVerify` calls Stage before
+`onSuccess`; therefore the UI does not become verified merely because IDKit
+returned a payload.
+
+World remains separate from wallet authentication: the wallet signature creates
+the session first. `/eligibility` is retained as a compatibility/status page
+that can reopen the verification prompt.
 
 Fake mode is visibly labelled `DEMO MODE` and bypasses IDKit with a deterministic
 fake proof accepted only by `FakeWorldProvider`.
@@ -187,7 +198,7 @@ World identifiers must never be included in HCS audit payloads.
 1. Run all unit, type, lint and build checks in fake mode.
 2. Authenticate with a wallet-backed Stage session.
 3. Confirm `/world/status` returns `verified: false`.
-4. Open `/eligibility` on desktop and complete the QR flow.
+4. Log in with a wallet and complete the automatically presented QR flow.
 5. Repeat on mobile and confirm the World deep link returns correctly.
 6. Confirm `/world/verify` is the only source of `verified: true`.
 7. Confirm the database stores identity metadata and replay key, not raw proof.
@@ -204,8 +215,8 @@ World identifiers must never be included in HCS audit payloads.
 - Real Selfie Check access and partner enablement cannot be inferred from local
   placeholders; it requires an enabled Developer Portal application.
 - The current flow uses legacy v3 Selfie proofs through the v4 verifier.
-- The frontend assumes an existing wallet-backed Stage session; wallet login UI
-  remains a separate integration.
+- The post-login modal is a frontend gate. Backend reward and challenge actions
+  must continue enforcing World eligibility independently.
 - Reward eligibility is exposed as a backend service seam. The challenge reward
   transaction/outbox module must call it when that Stage 1 module is built.
 - Real credential tests are intentionally environment-gated and are not part of

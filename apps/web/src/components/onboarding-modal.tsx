@@ -7,13 +7,22 @@ import { Button } from "./ui/button";
 
 export function OnboardingModal() {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const { session, completeOnboarding } = useAuth();
+  const {
+    session,
+    worldVerificationLoading,
+    worldVerified,
+    worldVerificationDismissed,
+    completeOnboarding,
+  } = useAuth();
   const [mode, setMode] = useState<"choice" | "creator">("choice");
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const open = session?.user.onboardingRequired === true;
+  const open =
+    session?.user.onboardingRequired === true &&
+    !worldVerificationLoading &&
+    (worldVerified || worldVerificationDismissed);
 
   useEffect(() => {
     const dialog = dialogRef.current;

@@ -14,7 +14,6 @@ const NAV_LINKS = [
   { href: "/challenges", label: "Challenges" },
   { href: "/creators", label: "Creators" },
   { href: "/perks", label: "Perks" },
-  { href: "/eligibility", label: "Eligibility" },
 ];
 
 export function SiteHeader() {

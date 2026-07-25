@@ -48,7 +48,15 @@ function backendErrorState(error: unknown): WorldVerificationUiState {
   return "unavailable";
 }
 
-export function SelfieCheckButton({ service }: { service: WorldService }) {
+export function SelfieCheckButton({
+  service,
+  onVerified,
+  buttonLabel = "Verify eligibility",
+}: {
+  service: WorldService;
+  onVerified?: () => void;
+  buttonLabel?: string;
+}) {
   const [state, setState] = useState<WorldVerificationUiState>("not_verified");
   const [provider, setProvider] = useState<WorldProviderName>();
   const [request, setRequest] = useState<SelfieCheckRequestConfig>();
@@ -62,6 +70,7 @@ export function SelfieCheckButton({ service }: { service: WorldService }) {
         if (!active) return;
         setProvider(status.provider);
         setState(status.verified ? "verified" : "not_verified");
+        if (status.verified) onVerified?.();
       })
       .catch(() => {
         if (active) setState("not_verified");
@@ -69,7 +78,7 @@ export function SelfieCheckButton({ service }: { service: WorldService }) {
     return () => {
       active = false;
     };
-  }, [service]);
+  }, [service, onVerified]);
 
   async function start(): Promise<void> {
     setState("requesting_context");
@@ -82,6 +91,7 @@ export function SelfieCheckButton({ service }: { service: WorldService }) {
           proof: createFakeSelfieCheckProof(context),
         });
         setState(status.verified ? "verified" : "invalid_proof");
+        if (status.verified) onVerified?.();
         return;
       }
       setRequest(createSelfieCheckRequest(context));
@@ -105,7 +115,7 @@ export function SelfieCheckButton({ service }: { service: WorldService }) {
           disabled={busy}
           onClick={() => void start()}
         >
-          {busy ? "Checking…" : "Verify eligibility"}
+          {busy ? "Checking…" : buttonLabel}
         </Button>
       ) : null}
       {request ? (
@@ -139,6 +149,7 @@ export function SelfieCheckButton({ service }: { service: WorldService }) {
           onSuccess={() => {
             setOpen(false);
             setState("verified");
+            onVerified?.();
           }}
           onError={(code) => {
             setState(worldClientErrorState(code));

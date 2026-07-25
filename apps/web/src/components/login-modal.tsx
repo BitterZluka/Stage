@@ -102,7 +102,8 @@ export function LoginModal({ open, onOpen, onClose }: LoginModalProps) {
       <div className="flex flex-col gap-4 p-6">
         <p className="text-sm text-gray-600">
           Connect MetaMask or a native Hedera wallet and sign a one-time
-          message. This does not submit a transaction or cost HBAR.
+          message. This does not submit a transaction or cost HBAR. After the
+          wallet is verified, you will continue with World Selfie Check.
         </p>
 
         {error && (

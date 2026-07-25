@@ -3,6 +3,7 @@ import { Righteous } from "next/font/google";
 import { AuthProvider } from "../auth/auth-provider";
 import { OnboardingModal } from "../components/onboarding-modal";
 import { SiteHeader } from "../components/site-header";
+import { PostLoginWorldModal } from "../components/world/post-login-world-modal";
 import "./globals.css";
 
 const righteous = Righteous({
@@ -31,6 +32,7 @@ export default function RootLayout({
             Skip to content
           </a>
           <SiteHeader />
+          <PostLoginWorldModal />
           <OnboardingModal />
           <main id="main-content">{children}</main>
         </AuthProvider>
