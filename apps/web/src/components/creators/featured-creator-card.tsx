@@ -14,15 +14,31 @@ export interface FeaturedCreatorCardProps {
   className?: string;
 }
 
-export function FeaturedCreatorCard({ creator, following, onToggleFollow, className = "" }: FeaturedCreatorCardProps) {
+export function FeaturedCreatorCard({
+  creator,
+  following,
+  onToggleFollow,
+  className = "",
+}: FeaturedCreatorCardProps) {
   return (
-    <SurfaceCard accent={creator.accent} className={`grid grid-cols-1 lg:grid-cols-2 ${className}`}>
+    <SurfaceCard
+      accent={creator.accent}
+      className={`grid grid-cols-1 lg:grid-cols-2 ${className}`}
+    >
       <div
         className="relative flex min-h-[240px] flex-col items-center justify-center gap-3 border-b-2 border-black p-6 text-center lg:border-r-2 lg:border-b-0"
-        style={{ background: `linear-gradient(135deg, ${creator.accent}, #ffffff)` }}
+        style={{
+          background: `linear-gradient(135deg, ${creator.accent}, #ffffff)`,
+        }}
       >
-        <div className="bg-pixel-grid pointer-events-none absolute inset-0 opacity-[0.07]" aria-hidden="true" />
-        <div className="bg-scanlines pointer-events-none absolute inset-0 opacity-[0.04]" aria-hidden="true" />
+        <div
+          className="bg-pixel-grid pointer-events-none absolute inset-0 opacity-[0.07]"
+          aria-hidden="true"
+        />
+        <div
+          className="bg-scanlines pointer-events-none absolute inset-0 opacity-[0.04]"
+          aria-hidden="true"
+        />
         <div className="absolute top-4 left-4">
           <Badge color="yellow">Featured</Badge>
         </div>
@@ -34,7 +50,9 @@ export function FeaturedCreatorCard({ creator, following, onToggleFollow, classN
           {creator.avatarInitials}
         </span>
         <div className="relative z-10">
-          <p className="font-display text-xl font-bold">{creator.displayName}</p>
+          <p className="font-display text-xl font-bold">
+            {creator.displayName}
+          </p>
           <p className="text-sm font-bold text-black/60">{creator.username}</p>
         </div>
         <div className="relative z-10">
@@ -43,14 +61,18 @@ export function FeaturedCreatorCard({ creator, following, onToggleFollow, classN
       </div>
 
       <div className="flex flex-col justify-center p-6 sm:p-8">
-        <p className="mb-4 text-sm leading-relaxed text-gray-600 sm:text-base">{creator.bio}</p>
+        <p className="mb-4 text-sm leading-relaxed text-gray-600 sm:text-base">
+          {creator.bio}
+        </p>
 
         <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-500">
           <span className="flex items-center gap-1.5">
-            <UsersIcon size={14} /> {formatFollowerCount(creator.followersCount)} followers
+            <UsersIcon size={14} />{" "}
+            {formatFollowerCount(creator.followersCount)} followers
           </span>
           <span className="flex items-center gap-1.5">
-            <FlameIcon size={14} /> {creator.activeChallengesCount} active challenges
+            <FlameIcon size={14} /> {creator.activeChallengesCount} active
+            challenges
           </span>
           <span className="flex items-center gap-1.5">
             <GiftIcon size={14} /> {creator.perksCount} perks
@@ -67,9 +89,13 @@ export function FeaturedCreatorCard({ creator, following, onToggleFollow, classN
         {creator.highlight && (
           <div className="mb-6 rounded-xl border-2 border-black bg-black/[0.03] p-4">
             <p className="mb-1 text-xs font-bold tracking-wide text-black/50 uppercase">
-              {creator.highlight.kind === "challenge" ? "Active challenge" : "Featured perk"}
+              {creator.highlight.kind === "challenge"
+                ? "Active challenge"
+                : "Featured perk"}
             </p>
-            <p className="font-display text-sm font-bold">{creator.highlight.title}</p>
+            <p className="font-display text-sm font-bold">
+              {creator.highlight.title}
+            </p>
             <p className="text-xs text-gray-500">{creator.highlight.detail}</p>
           </div>
         )}
@@ -81,7 +107,11 @@ export function FeaturedCreatorCard({ creator, following, onToggleFollow, classN
             onToggle={() => onToggleFollow(creator.id)}
             size="md"
           />
-          <Button href={`/creators/${creator.slug}`} variant="primary" size="md">
+          <Button
+            href={`/creators/${creator.slug}`}
+            variant="primary"
+            size="md"
+          >
             View profile
           </Button>
         </div>

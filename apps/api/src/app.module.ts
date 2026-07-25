@@ -5,6 +5,7 @@ import { SubmissionModule } from "./submissions/submission.module.js";
 import { ClaimModule } from "./claims/claim.module.js";
 import { PerkModule } from "./perks/perk.module.js";
 import { WorldModule } from "./world/world.module.js";
+import { CatalogModule } from "./catalog/catalog.module.js";
 
 @Controller("health")
 class HealthController {
@@ -22,6 +23,7 @@ class HealthController {
     SubmissionModule,
     PerkModule,
     ClaimModule,
+    CatalogModule,
   ],
   controllers: [HealthController],
 })

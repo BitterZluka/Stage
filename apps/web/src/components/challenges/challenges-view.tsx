@@ -5,8 +5,8 @@ import {
   type ChallengeFilterState,
   type DiscoverChallenge,
   EMPTY_CHALLENGE_FILTERS,
-  getDiscoverChallenges,
 } from "../../content/challenges";
+import { catalogService, mapCatalogChallenge } from "../../lib/catalog";
 import { CloseIcon, FilterIcon } from "../icons";
 import { Button } from "../ui/button";
 import { ChallengeCard } from "./challenge-card";
@@ -15,7 +15,10 @@ import { ChallengeSearch } from "./challenge-search";
 import { ChallengeSortSelect } from "./challenge-sort-select";
 import { ChallengesEmptyState } from "./challenges-empty-state";
 import { ChallengesErrorState } from "./challenges-error-state";
-import { ChallengeFiltersSkeleton, ChallengesGridSkeleton } from "./challenges-skeleton";
+import {
+  ChallengeFiltersSkeleton,
+  ChallengesGridSkeleton,
+} from "./challenges-skeleton";
 import { ChallengesHero } from "./challenges-hero";
 import { matchesChallengeFilters, countActiveFilters } from "./filter";
 import { type SortOption, sortChallenges } from "./sort";
@@ -27,7 +30,9 @@ export function ChallengesView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<ChallengeFilterState>(EMPTY_CHALLENGE_FILTERS);
+  const [filters, setFilters] = useState<ChallengeFilterState>(
+    EMPTY_CHALLENGE_FILTERS,
+  );
   const [sort, setSort] = useState<SortOption>("relevant");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -39,8 +44,9 @@ export function ChallengesView() {
   const loadChallenges = useCallback(() => {
     setLoading(true);
     setError(false);
-    getDiscoverChallenges()
-      .then((items) => setChallenges(items))
+    catalogService
+      .listChallenges()
+      .then(({ items }) => setChallenges(items.map(mapCatalogChallenge)))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
@@ -69,19 +75,28 @@ export function ChallengesView() {
   const hasActiveFilters = hasActiveQuery || activeFilterCount > 0;
 
   const results = useMemo(() => {
-    const matched = challenges.filter((item) => matchesChallengeFilters(item, searchQuery, filters));
+    const matched = challenges.filter((item) =>
+      matchesChallengeFilters(item, searchQuery, filters),
+    );
     return sortChallenges(matched, sort);
   }, [challenges, searchQuery, filters, sort]);
 
   const visibleResults = results.slice(0, visibleCount);
   const canLoadMore = visibleResults.length < results.length;
 
-  function toggleFilter<K extends keyof ChallengeFilterState>(group: K, value: ChallengeFilterState[K][number]) {
+  function toggleFilter<K extends keyof ChallengeFilterState>(
+    group: K,
+    value: ChallengeFilterState[K][number],
+  ) {
     setVisibleCount(PAGE_SIZE);
     setFilters((prev) => {
       const current = prev[group];
-      const exists = (current as ChallengeFilterState[K][number][]).includes(value);
-      const next = exists ? current.filter((item) => item !== value) : [...current, value];
+      const exists = (current as ChallengeFilterState[K][number][]).includes(
+        value,
+      );
+      const next = exists
+        ? current.filter((item) => item !== value)
+        : [...current, value];
       return { ...prev, [group]: next };
     });
   }
@@ -115,7 +130,11 @@ export function ChallengesView() {
       <ChallengesHero />
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <ChallengeSearch value={searchQuery} onChange={handleSearchChange} className="sm:max-w-sm" />
+        <ChallengeSearch
+          value={searchQuery}
+          onChange={handleSearchChange}
+          className="sm:max-w-sm"
+        />
 
         <div className="flex items-center gap-2 sm:ml-auto">
           <button
@@ -134,7 +153,11 @@ export function ChallengesView() {
             )}
           </button>
 
-          <ChallengeSortSelect value={sort} onChange={handleSortChange} className="min-w-[170px]" />
+          <ChallengeSortSelect
+            value={sort}
+            onChange={handleSortChange}
+            className="min-w-[170px]"
+          />
 
           {hasActiveFilters && (
             <button
@@ -165,7 +188,9 @@ export function ChallengesView() {
         </aside>
 
         <div>
-          {error && !loading && <ChallengesErrorState onRetry={loadChallenges} />}
+          {error && !loading && (
+            <ChallengesErrorState onRetry={loadChallenges} />
+          )}
 
           {!error && loading && (
             <div className="space-y-8">
@@ -175,12 +200,20 @@ export function ChallengesView() {
 
           {!error && !loading && (
             <section aria-labelledby="challenge-results-heading">
-              <h2 id="challenge-results-heading" className="font-display mb-6 text-2xl font-bold sm:text-3xl">
-                {hasActiveFilters ? `${results.length} challenges found` : "All challenges"}
+              <h2
+                id="challenge-results-heading"
+                className="font-display mb-6 text-2xl font-bold sm:text-3xl"
+              >
+                {hasActiveFilters
+                  ? `${results.length} challenges found`
+                  : "All challenges"}
               </h2>
 
               {visibleResults.length === 0 ? (
-                <ChallengesEmptyState onClear={clearAll} showClear={hasActiveFilters} />
+                <ChallengesEmptyState
+                  onClear={clearAll}
+                  showClear={hasActiveFilters}
+                />
               ) : (
                 <>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -224,7 +257,9 @@ export function ChallengesView() {
             className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t-2 border-black bg-white p-5 pb-8 shadow-offset"
           >
             <div className="mb-4 flex items-center justify-between">
-              <span className="font-display text-lg font-bold">Filter challenges</span>
+              <span className="font-display text-lg font-bold">
+                Filter challenges
+              </span>
               <button
                 ref={firstDrawerFieldRef}
                 type="button"

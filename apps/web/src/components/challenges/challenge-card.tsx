@@ -15,11 +15,18 @@ export function ChallengeCard({ challenge }: ChallengeCardProps) {
     <SurfaceCard accent={challenge.accent} className="flex h-full flex-col">
       <div
         className="relative flex h-32 items-center justify-center border-b-2 border-black"
-        style={{ background: `linear-gradient(135deg, ${challenge.accent}, #ffffff)` }}
+        style={{
+          background: `linear-gradient(135deg, ${challenge.accent}, #ffffff)`,
+        }}
       >
-        <div className="bg-pixel-grid pointer-events-none absolute inset-0 opacity-[0.06]" aria-hidden="true" />
+        <div
+          className="bg-pixel-grid pointer-events-none absolute inset-0 opacity-[0.06]"
+          aria-hidden="true"
+        />
         <div className="absolute top-3 left-3">
-          <Badge color="white">{challenge.formatNote ?? challenge.format}</Badge>
+          <Badge color="white">
+            {challenge.formatNote ?? challenge.format}
+          </Badge>
         </div>
         <div className="absolute top-3 right-3">
           <ChallengeStatusBadge status={challenge.status} />
@@ -36,20 +43,32 @@ export function ChallengeCard({ challenge }: ChallengeCardProps) {
       </div>
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="font-display mb-1.5 text-base leading-snug font-bold">{challenge.title}</h3>
-        <p className="mb-3 line-clamp-2 text-sm text-gray-600">{challenge.description}</p>
+        <h3 className="font-display mb-1.5 text-base leading-snug font-bold">
+          {challenge.title}
+        </h3>
+        <p className="mb-3 line-clamp-2 text-sm text-gray-600">
+          {challenge.description}
+        </p>
 
         <div className="mt-auto space-y-1.5 border-t-2 border-black/10 pt-3">
           {(challenge.winnerReward ?? challenge.rewardTBA) && (
-            <RewardBadge label="Winner reward" reward={challenge.winnerReward} tba={challenge.rewardTBA} />
+            <RewardBadge
+              label="Winner reward"
+              reward={challenge.winnerReward}
+              tba={challenge.rewardTBA}
+            />
           )}
           {challenge.participationReward && (
-            <RewardBadge label="Participation" reward={challenge.participationReward} />
+            <RewardBadge
+              label="Participation"
+              reward={challenge.participationReward}
+            />
           )}
 
           <div className="flex items-center justify-between pt-1 text-xs text-gray-400">
             <span className="flex items-center gap-1">
-              <UsersIcon size={12} /> {challenge.submissionCount.toLocaleString()} submissions
+              <UsersIcon size={12} />{" "}
+              {challenge.submissionCount.toLocaleString()} submissions
             </span>
             <span className="flex items-center gap-1">
               <ClockIcon size={12} /> {challenge.statusLabel}
@@ -57,7 +76,12 @@ export function ChallengeCard({ challenge }: ChallengeCardProps) {
           </div>
         </div>
 
-        <Button href={`/challenges/${challenge.id}`} variant="ghost" size="sm" className="mt-4 w-full">
+        <Button
+          href={`/challenges/${challenge.id}`}
+          variant="ghost"
+          size="sm"
+          className="mt-4 w-full"
+        >
           View challenge
         </Button>
       </div>

@@ -4,7 +4,7 @@ import {
   ApiChallengeService,
   ApiClientError,
   ApiSubmissionService,
-  type Challenge,
+  type CatalogChallenge,
   type ChallengeId,
   type Submission,
   type SubmissionId,
@@ -13,9 +13,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useAuth } from "../../auth/auth-provider";
 import {
-  DISCOVER_CHALLENGES,
-  type DiscoverChallenge,
-} from "../../content/challenges";
+  catalogService,
+  initials,
+  mapCatalogChallenge,
+} from "../../lib/catalog";
 import { CheckIcon, ClockIcon, UsersIcon, ZapIcon } from "../icons";
 import { Badge, type BadgeColor } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -40,7 +41,7 @@ interface ChallengeDetail {
   startsAt: string;
   submissionDeadline: string;
   accent: string;
-  source: "api" | "fixture";
+  source: "demo" | "database";
 }
 
 const STATUS_COLOR: Record<string, BadgeColor> = {
@@ -51,40 +52,12 @@ const STATUS_COLOR: Record<string, BadgeColor> = {
   cancelled: "pink",
 };
 
-function fixtureDetail(challenge: DiscoverChallenge): ChallengeDetail {
-  const deadline = new Date();
-  deadline.setDate(deadline.getDate() + (challenge.daysRemaining ?? 14));
-  return {
-    id: challenge.id,
-    creatorName: challenge.creatorName,
-    creatorInitials: challenge.creatorInitials,
-    title: challenge.title,
-    description: challenge.description,
-    status:
-      challenge.status === "completed"
-        ? "completed"
-        : challenge.status === "upcoming"
-          ? "draft"
-          : "published",
-    submissionKind: challenge.format.toLowerCase(),
-    verificationMode: "manual",
-    requiresWorldVerification: false,
-    rewardAmount: String(challenge.winnerReward?.amount ?? 0),
-    maxWinners: 1,
-    winnerCount: challenge.status === "completed" ? 1 : 0,
-    startsAt: new Date().toISOString(),
-    submissionDeadline: deadline.toISOString(),
-    accent: challenge.accent,
-    source: "fixture",
-  };
-}
-
-function apiDetail(challenge: Challenge): ChallengeDetail {
+function catalogDetail(challenge: CatalogChallenge): ChallengeDetail {
   return {
     id: challenge.id,
     creatorId: challenge.creatorId,
-    creatorName: "Creator community",
-    creatorInitials: "SC",
+    creatorName: challenge.creatorName,
+    creatorInitials: initials(challenge.creatorName),
     title: challenge.title,
     description: challenge.description,
     status: String(challenge.status),
@@ -96,8 +69,8 @@ function apiDetail(challenge: Challenge): ChallengeDetail {
     winnerCount: challenge.winnerCount,
     startsAt: challenge.startsAt,
     submissionDeadline: challenge.submissionDeadline,
-    accent: "var(--color-stage-cyan)",
-    source: "api",
+    accent: mapCatalogChallenge(challenge).accent,
+    source: challenge.source,
   };
 }
 
@@ -150,6 +123,7 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
   const [notice, setNotice] = useState<string | null>(null);
 
   const isOwner =
+    challenge?.source === "database" &&
     Boolean(challenge?.creatorId) &&
     session?.user.creatorId === challenge?.creatorId;
   const effectiveMode: ViewMode = isOwner ? mode : "fan";
@@ -158,41 +132,25 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const result = await challengeService.getChallenge(
-        challengeId as ChallengeId,
-      );
+      const result = await catalogService.getChallenge(challengeId);
       if (result) {
-        setChallenge(apiDetail(result));
-        return;
-      }
-      const fixture = DISCOVER_CHALLENGES.find(
-        (item) => item.id === challengeId,
-      );
-      if (fixture) {
-        setChallenge(fixtureDetail(fixture));
+        setChallenge(catalogDetail(result));
         return;
       }
       setError("This challenge could not be found.");
     } catch (cause) {
-      const fixture = DISCOVER_CHALLENGES.find(
-        (item) => item.id === challengeId,
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Could not load the challenge.",
       );
-      if (fixture) {
-        setChallenge(fixtureDetail(fixture));
-      } else {
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : "Could not load the challenge.",
-        );
-      }
     } finally {
       setLoading(false);
     }
-  }, [challengeId, challengeService]);
+  }, [challengeId]);
 
   const loadSubmissions = useCallback(async () => {
-    if (!challenge || !isOwner || challenge.source !== "api") return;
+    if (!challenge || !isOwner || challenge.source !== "database") return;
     try {
       const page = await submissionService.listChallengeSubmissions(
         challenge.id as ChallengeId,
@@ -218,7 +176,7 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
   }, [isOwner, loadSubmissions]);
 
   async function submitEvidence() {
-    if (!challenge || challenge.source !== "api") {
+    if (!challenge || challenge.source !== "database") {
       setNotice(
         "Demo challenges are read-only. Use a published API challenge.",
       );
@@ -318,6 +276,7 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
   );
   const acceptsUrl = challenge.submissionKind !== "text";
   const canSubmit =
+    challenge.source === "database" &&
     challenge.status === "published" &&
     (!challenge.requiresWorldVerification || worldVerified);
 
@@ -362,7 +321,7 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
             </Badge>
             <Badge color="white">{challenge.submissionKind} evidence</Badge>
             <Badge color="lavender">{challenge.verificationMode} review</Badge>
-            {challenge.source === "fixture" && (
+            {challenge.source === "demo" && (
               <Badge color="yellow">Demo content</Badge>
             )}
           </div>

@@ -1,6 +1,11 @@
 import type {
   Challenge,
   ChallengeId,
+  CatalogChallenge,
+  CatalogCreator,
+  CatalogCreatorProfile,
+  CatalogPerk,
+  CatalogResponse,
   Claim,
   ClaimId,
   Creator,
@@ -28,6 +33,11 @@ import type {
 export type {
   Challenge,
   ChallengeId,
+  CatalogChallenge,
+  CatalogCreator,
+  CatalogCreatorProfile,
+  CatalogPerk,
+  CatalogResponse,
   Claim,
   ClaimId,
   Creator,

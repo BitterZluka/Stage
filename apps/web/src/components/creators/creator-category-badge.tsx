@@ -17,7 +17,10 @@ export interface CreatorCategoryBadgeProps {
   className?: string;
 }
 
-export function CreatorCategoryBadge({ category, className = "" }: CreatorCategoryBadgeProps) {
+export function CreatorCategoryBadge({
+  category,
+  className = "",
+}: CreatorCategoryBadgeProps) {
   return (
     <Badge color={CATEGORY_COLOR[category]} className={className}>
       {category}

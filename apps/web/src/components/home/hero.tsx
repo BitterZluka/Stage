@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { SurfaceCard } from "../ui/surface-card";
 
@@ -12,8 +11,14 @@ export function Hero() {
           "linear-gradient(135deg,#d4f7ff 0%,#ede6ff 45%,#ffe0f2 100%)",
       }}
     >
-      <div className="bg-pixel-grid pointer-events-none absolute inset-0 opacity-[0.07]" aria-hidden="true" />
-      <div className="bg-scanlines pointer-events-none absolute inset-0 opacity-[0.03]" aria-hidden="true" />
+      <div
+        className="bg-pixel-grid pointer-events-none absolute inset-0 opacity-[0.07]"
+        aria-hidden="true"
+      />
+      <div
+        className="bg-scanlines pointer-events-none absolute inset-0 opacity-[0.03]"
+        aria-hidden="true"
+      />
 
       <div className="relative z-10 grid grid-cols-1 gap-10 p-6 sm:p-10 lg:grid-cols-2 lg:items-center lg:p-14">
         <div>
@@ -28,15 +33,15 @@ export function Hero() {
         </div>
 
         <div className="flex items-center justify-center">
-            <Image
-              src="/brand/IMG_1538.png"
-              alt="STAGE mascot: a hand-drawn black-and-white rabbit with one ear up, next to a speech bubble reading STAGE"
-              width={1782}
-              height={1231}
-              className="h-auto w-[700px] max-w-none scale-[1.35] -translate-x-7 rounded-2xl"
-              priority
-              sizes="(min-width: 1024px) 384px, 80vw"
-            />
+          <Image
+            src="/brand/IMG_1538.png"
+            alt="STAGE mascot: a hand-drawn black-and-white rabbit with one ear up, next to a speech bubble reading STAGE"
+            width={1782}
+            height={1231}
+            className="h-auto w-[700px] max-w-none scale-[1.35] -translate-x-7 rounded-2xl"
+            priority
+            sizes="(min-width: 1024px) 384px, 80vw"
+          />
         </div>
       </div>
 
@@ -46,21 +51,24 @@ export function Hero() {
             I&apos;m here to participate
           </h3>
           <p className="mb-6 text-sm leading-relaxed text-gray-600">
-            Discover creators, join challenges, submit your work, earn
-            credits, and unlock exclusive perks.
+            Discover creators, join challenges, submit your work, earn credits,
+            and unlock exclusive perks.
           </p>
           <Button href="/explore" variant="cyan" size="md">
             Explore as a fan
           </Button>
         </SurfaceCard>
 
-        <SurfaceCard accent="var(--color-stage-lavender)" className="p-6 sm:p-7">
+        <SurfaceCard
+          accent="var(--color-stage-lavender)"
+          className="p-6 sm:p-7"
+        >
           <h3 className="font-display mb-2 text-xl font-bold">
             I&apos;m a creator
           </h3>
           <p className="mb-6 text-sm leading-relaxed text-gray-600">
-            Launch challenges, reward your community, publish perks, and
-            manage submissions.
+            Launch challenges, reward your community, publish perks, and manage
+            submissions.
           </p>
           <Button href="/studio" variant="lavender" size="md">
             Start as a creator

@@ -37,6 +37,11 @@ Chain column: `—` — none; `R` — Hedera/Mirror read; `W(outbox)` — write 
 | Auth | `POST /auth/onboarding` | `{ intent: "fan" }` or `{ intent: "creator", handle, displayName }` → `SessionView` | User; only required for new accounts | `HANDLE_TAKEN` | — | sync |
 | Auth | `GET /auth/me` | — → `UserView` | User; self | — | — | sync |
 | Auth | `DELETE /auth/session` | — → `204` | User; self | — | — | sync |
+| Catalog | `GET /catalog/challenges` | — → `{ items: CatalogChallenge[] }` | Public; demo fixtures merged with public DB records | — | — | sync |
+| Catalog | `GET /catalog/challenges/:id` | — → `CatalogChallenge` | Public | `NOT_FOUND` | — | sync |
+| Catalog | `GET /catalog/creators` | — → `{ items: CatalogCreator[] }` | Public; demo fixtures merged with active DB creators | — | — | sync |
+| Catalog | `GET /catalog/creators/:handle` | — → creator with challenges and perks | Public | `NOT_FOUND` | — | sync |
+| Catalog | `GET /catalog/perks` | optional `creatorId` → `{ items: CatalogPerk[] }` | Public; demo fixtures merged with public DB records | — | — | sync |
 | Creators | `GET /creators` | query `cursor,limit` → page `CreatorCard` | Public | — | — | sync |
 | Creators | `POST /creators` | `CreateCreatorDto` → `CreatorView` | User; one owned creator in MVP | `HANDLE_TAKEN`, `CREATOR_LIMIT` | HCS(outbox) | sync DB; audit eventual |
 | Creators | `GET /creators/:creatorId` | — → `CreatorView` | Public | — | — | sync |
@@ -139,6 +144,6 @@ Response views do not contain another user's email, World proof/nullifier, signe
 
 ## Frontend services and mocks
 
-`apps/web` depends on `AuthService`, `CreatorService`, `ChallengeService`, `SubmissionService`, `RewardService`, `WorldService`, `PerkService`, and `ClaimService`. The `Api*Service` implementation calls the API; `Mock*Service` reproduces the same DTOs, delays, and errors. Mocks do not import server repositories or simulate the Hedera system signature.
+`apps/web` depends on `CatalogService` for public discovery reads and on `AuthService`, `CreatorService`, `ChallengeService`, `SubmissionService`, `RewardService`, `WorldService`, `PerkService`, and `ClaimService` for domain workflows. The `Api*Service` implementation calls the API. The catalog temporarily merges backend demo fixtures with public PostgreSQL records; authenticated mutations never write to those fixtures.
 
 **Temporary MVP solution:** poll `/operations/:id` every 2 seconds with backoff and stop after 60 seconds; after polling stops, the UI displays “processing continues,” not a transaction error.

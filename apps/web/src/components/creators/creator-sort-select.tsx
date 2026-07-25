@@ -16,7 +16,11 @@ export interface CreatorSortSelectProps {
   className?: string;
 }
 
-export function CreatorSortSelect({ value, onChange, className = "" }: CreatorSortSelectProps) {
+export function CreatorSortSelect({
+  value,
+  onChange,
+  className = "",
+}: CreatorSortSelectProps) {
   return (
     <div className={`relative ${className}`}>
       <label htmlFor="creator-sort" className="sr-only">
@@ -25,7 +29,9 @@ export function CreatorSortSelect({ value, onChange, className = "" }: CreatorSo
       <select
         id="creator-sort"
         value={value}
-        onChange={(event: ChangeEvent<HTMLSelectElement>) => onChange(event.target.value as CreatorSortOption)}
+        onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+          onChange(event.target.value as CreatorSortOption)
+        }
         className="w-full appearance-none rounded-xl border-2 border-black bg-white py-3 pr-9 pl-4 text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
       >
         {SORT_OPTIONS.map((option) => (
@@ -34,7 +40,10 @@ export function CreatorSortSelect({ value, onChange, className = "" }: CreatorSo
           </option>
         ))}
       </select>
-      <ChevronDownIcon size={14} className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-black/60" />
+      <ChevronDownIcon
+        size={14}
+        className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-black/60"
+      />
     </div>
   );
 }

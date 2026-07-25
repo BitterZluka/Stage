@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
-import type { ActivityFilter, CommunitySize, CreatorCategory, CreatorFilterState } from "../../content/creators";
+import type {
+  ActivityFilter,
+  CommunitySize,
+  CreatorCategory,
+  CreatorFilterState,
+} from "../../content/creators";
 import { Checkbox } from "../ui/checkbox";
 
 const CATEGORY_OPTIONS: { value: CreatorCategory; label: string }[] = [
@@ -29,7 +34,10 @@ export type ArrayFilterKey = "category" | "activity" | "communitySize";
 
 export interface CreatorFiltersProps {
   filters: CreatorFilterState;
-  onToggle<K extends ArrayFilterKey>(group: K, value: CreatorFilterState[K][number]): void;
+  onToggle<K extends ArrayFilterKey>(
+    group: K,
+    value: CreatorFilterState[K][number],
+  ): void;
   onClear: () => void;
   activeCount: number;
   heading?: string;
@@ -101,10 +109,18 @@ export function CreatorFilters({
   );
 }
 
-function FilterGroup({ title, children }: { title: string; children: ReactNode }) {
+function FilterGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <fieldset className="mb-5 border-b-2 border-black/10 pb-5">
-      <legend className="mb-2 text-xs font-bold tracking-wide text-black/50 uppercase">{title}</legend>
+      <legend className="mb-2 text-xs font-bold tracking-wide text-black/50 uppercase">
+        {title}
+      </legend>
       <div className="flex flex-col gap-0.5">{children}</div>
     </fieldset>
   );

@@ -26,7 +26,9 @@ export function Checkbox({ id, checked, onChange, children }: CheckboxProps) {
           onChange={(event) => onChange(event.target.checked)}
           className="absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
         />
-        {checked && <CheckIcon size={13} className="pointer-events-none text-black" />}
+        {checked && (
+          <CheckIcon size={13} className="pointer-events-none text-black" />
+        )}
       </span>
       <span>{children}</span>
     </label>

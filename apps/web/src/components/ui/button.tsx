@@ -2,13 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 export type ButtonVariant =
-  | "primary"
-  | "holo"
-  | "cyan"
-  | "pink"
-  | "ghost"
-  | "mint"
-  | "lavender";
+  "primary" | "holo" | "cyan" | "pink" | "ghost" | "mint" | "lavender";
 export type ButtonSize = "sm" | "md" | "lg";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
@@ -51,12 +45,7 @@ interface ButtonAsLink extends CommonProps {
 export type ButtonProps = ButtonAsButton | ButtonAsLink;
 
 export function Button(props: ButtonProps) {
-  const {
-    children,
-    variant = "primary",
-    size = "md",
-    className = "",
-  } = props;
+  const { children, variant = "primary", size = "md", className = "" } = props;
   const classes = `${BASE_CLASSES} ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`;
 
   if ("href" in props && props.href !== undefined) {

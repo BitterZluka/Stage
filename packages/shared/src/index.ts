@@ -2,6 +2,7 @@ export * from "./domain/primitives.js";
 export * from "./domain/entities.js";
 export * from "./enums/status.js";
 export * from "./dto/api.js";
+export * from "./dto/catalog.js";
 export * from "./schemas/validation.js";
 export * from "./events/audit.js";
 export * from "./events/domain-events.js";

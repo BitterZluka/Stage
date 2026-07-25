@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import type { CatalogCreatorProfile } from "@creator-platform/api-client";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { DISCOVER_CHALLENGES } from "../../content/challenges";
+import type { DiscoverCreator } from "../../content/creators";
 import {
-  DISCOVER_CREATORS,
-  type DiscoverCreator,
-} from "../../content/creators";
+  catalogService,
+  mapCatalogChallenge,
+  mapCatalogCreator,
+  perkAccent,
+} from "../../lib/catalog";
 import { ChallengeCard } from "../challenges/challenge-card";
 import {
   CheckIcon,
@@ -24,41 +27,53 @@ import { CreatorVerifiedBadge } from "./creator-verified-badge";
 import { FollowButton } from "./follow-button";
 import { formatFollowerCount } from "./format";
 
-const PERK_TEMPLATES = [
-  {
-    title: "Community backstage access",
-    description: "Unlock private updates, early previews, and community chat.",
-    threshold: 500,
-    color: "var(--color-stage-cyan)",
-  },
-  {
-    title: "Limited signed drop",
-    description: "Claim a limited collectible reserved for token holders.",
-    threshold: 2_000,
-    color: "var(--color-stage-pink)",
-  },
-  {
-    title: "Monthly creator call",
-    description: "Join a private group call and help shape the next release.",
-    threshold: 5_000,
-    color: "var(--color-stage-lavender)",
-  },
-];
-
 export function CreatorProfileView({ creatorSlug }: { creatorSlug: string }) {
-  const creator = DISCOVER_CREATORS.find(
-    (item) => item.slug === creatorSlug || item.id === creatorSlug,
-  );
+  const [profile, setProfile] = useState<CatalogCreatorProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [following, setFollowing] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  if (!creator) {
+  const loadProfile = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    catalogService
+      .getCreator(creatorSlug)
+      .then((result) => {
+        setProfile(result);
+        if (!result)
+          setError("This profile may have moved or is not public yet.");
+      })
+      .catch((cause) =>
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "Could not load this creator.",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, [creatorSlug]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-7xl px-4 py-12">
+        <div className="h-96 animate-pulse rounded-3xl border-2 border-black bg-white/60" />
+      </main>
+    );
+  }
+
+  if (!profile) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-20 text-center">
         <h1 className="font-display text-4xl font-bold">Creator not found</h1>
-        <p className="mt-3 text-gray-600">
-          This profile may have moved or is not public yet.
-        </p>
+        <p className="mt-3 text-gray-600">{error}</p>
+        <Button onClick={loadProfile} variant="primary" className="mt-7">
+          Try again
+        </Button>
         <Button href="/creators" variant="ghost" className="mt-7">
           Browse creators
         </Button>
@@ -66,9 +81,9 @@ export function CreatorProfileView({ creatorSlug }: { creatorSlug: string }) {
     );
   }
 
-  const challenges = DISCOVER_CHALLENGES.filter(
-    (challenge) => challenge.creatorName === creator.displayName,
-  );
+  const creator = mapCatalogCreator(profile.creator);
+  const challenges = profile.challenges.map(mapCatalogChallenge);
+  const perks = profile.perks;
 
   async function shareProfile() {
     await navigator.clipboard.writeText(window.location.href);
@@ -150,42 +165,52 @@ export function CreatorProfileView({ creatorSlug }: { creatorSlug: string }) {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          {PERK_TEMPLATES.slice(0, Math.min(creator.perksCount, 3)).map(
-            (perk, index) => (
-              <SurfaceCard
-                key={perk.title}
-                accent={perk.color}
-                className="flex flex-col p-5"
-              >
-                <div
-                  className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black"
-                  style={{
-                    background: `linear-gradient(135deg, ${perk.color}, #fff)`,
-                  }}
+        {perks.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-3">
+            {perks.slice(0, 3).map((perk, index) => {
+              const color = perkAccent(perk);
+              return (
+                <SurfaceCard
+                  key={perk.id}
+                  accent={color}
+                  className="flex flex-col p-5"
                 >
-                  <GiftIcon size={20} />
-                </div>
-                <p className="mt-4 text-xs font-bold tracking-widest text-gray-500 uppercase">
-                  Perk {String(index + 1).padStart(2, "0")}
-                </p>
-                <h3 className="font-display mt-1 text-lg font-bold">
-                  {perk.title}
-                </h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-gray-600">
-                  {perk.description}
-                </p>
-                <div className="mt-5 flex items-center justify-between border-t-2 border-black/10 pt-4">
-                  <span className="flex items-center gap-1 text-sm font-bold">
-                    <ZapIcon size={14} /> {perk.threshold.toLocaleString()}{" "}
-                    {creator.tokenSymbol}
-                  </span>
-                  <Badge color="aqua">Available</Badge>
-                </div>
-              </SurfaceCard>
-            ),
-          )}
-        </div>
+                  <div
+                    className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black"
+                    style={{
+                      background: `linear-gradient(135deg, ${color}, #fff)`,
+                    }}
+                  >
+                    <GiftIcon size={20} />
+                  </div>
+                  <p className="mt-4 text-xs font-bold tracking-widest text-gray-500 uppercase">
+                    Perk {String(index + 1).padStart(2, "0")}
+                  </p>
+                  <h3 className="font-display mt-1 text-lg font-bold">
+                    {perk.title}
+                  </h3>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-gray-600">
+                    {perk.description}
+                  </p>
+                  <div className="mt-5 flex items-center justify-between border-t-2 border-black/10 pt-4">
+                    <span className="flex items-center gap-1 text-sm font-bold">
+                      <ZapIcon size={14} />{" "}
+                      {Number(perk.tokenThreshold).toLocaleString()}{" "}
+                      {perk.tokenSymbol}
+                    </span>
+                    <Badge color={perk.status === "active" ? "aqua" : "white"}>
+                      {perk.status}
+                    </Badge>
+                  </div>
+                </SurfaceCard>
+              );
+            })}
+          </div>
+        ) : (
+          <SurfaceCard className="p-8 text-center">
+            <p className="font-bold">No public perks right now.</p>
+          </SurfaceCard>
+        )}
       </section>
 
       <section

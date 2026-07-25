@@ -1,6 +1,11 @@
 import type {
   Challenge,
   ChallengeId,
+  CatalogChallenge,
+  CatalogCreator,
+  CatalogCreatorProfile,
+  CatalogPerk,
+  CatalogResponse,
   Claim,
   ClaimId,
   CreateClaimInput,
@@ -36,6 +41,7 @@ import type { PerkService } from "../services/perk-service.js";
 import type { RewardService } from "../services/reward-service.js";
 import type { SubmissionService } from "../services/submission-service.js";
 import type { WorldService } from "../services/world-service.js";
+import type { CatalogService } from "../services/catalog-service.js";
 
 export class ApiClientError extends Error {
   constructor(
@@ -447,5 +453,35 @@ export class ApiWorldService
 
   getVerification(): Promise<WorldVerificationView> {
     return this.request("/world/status");
+  }
+}
+
+export class ApiCatalogService
+  extends ApiServiceContract
+  implements CatalogService
+{
+  listChallenges(): Promise<CatalogResponse<CatalogChallenge>> {
+    return this.request("/catalog/challenges");
+  }
+
+  getChallenge(challengeId: string): Promise<CatalogChallenge | null> {
+    return this.request(
+      `/catalog/challenges/${encodeURIComponent(challengeId)}`,
+    );
+  }
+
+  listCreators(): Promise<CatalogResponse<CatalogCreator>> {
+    return this.request("/catalog/creators");
+  }
+
+  getCreator(handle: string): Promise<CatalogCreatorProfile | null> {
+    return this.request(`/catalog/creators/${encodeURIComponent(handle)}`);
+  }
+
+  listPerks(creatorId?: string): Promise<CatalogResponse<CatalogPerk>> {
+    const query = creatorId
+      ? `?creatorId=${encodeURIComponent(creatorId)}`
+      : "";
+    return this.request(`/catalog/perks${query}`);
   }
 }

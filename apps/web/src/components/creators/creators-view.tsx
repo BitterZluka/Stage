@@ -5,8 +5,8 @@ import {
   type CreatorFilterState,
   type DiscoverCreator,
   EMPTY_CREATOR_FILTERS,
-  getDiscoverCreators,
 } from "../../content/creators";
+import { catalogService, mapCatalogCreator } from "../../lib/catalog";
 import { CloseIcon, FilterIcon } from "../icons";
 import { Button } from "../ui/button";
 import { CreatorCard } from "./creator-card";
@@ -33,12 +33,16 @@ export function CreatorsView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<CreatorFilterState>(EMPTY_CREATOR_FILTERS);
+  const [filters, setFilters] = useState<CreatorFilterState>(
+    EMPTY_CREATOR_FILTERS,
+  );
   const [sort, setSort] = useState<CreatorSortOption>("relevant");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [followedIds, setFollowedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [followedIds, setFollowedIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
 
   const filtersButtonRef = useRef<HTMLButtonElement>(null);
   const firstDrawerFieldRef = useRef<HTMLButtonElement>(null);
@@ -46,8 +50,9 @@ export function CreatorsView() {
   const loadCreators = useCallback(() => {
     setLoading(true);
     setError(false);
-    getDiscoverCreators()
-      .then((items) => setCreators(items))
+    catalogService
+      .listCreators()
+      .then(({ items }) => setCreators(items.map(mapCatalogCreator)))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
@@ -76,25 +81,37 @@ export function CreatorsView() {
   const hasActiveFilters = hasActiveQuery || activeFilterCount > 0;
 
   const featured = useMemo(
-    () => (hasActiveFilters ? undefined : creators.find((item) => item.featured)),
+    () =>
+      hasActiveFilters ? undefined : creators.find((item) => item.featured),
     [creators, hasActiveFilters],
   );
 
   const results = useMemo(() => {
-    const matched = creators.filter((item) => matchesCreatorFilters(item, searchQuery, filters));
-    const withoutFeatured = featured ? matched.filter((item) => item.id !== featured.id) : matched;
+    const matched = creators.filter((item) =>
+      matchesCreatorFilters(item, searchQuery, filters),
+    );
+    const withoutFeatured = featured
+      ? matched.filter((item) => item.id !== featured.id)
+      : matched;
     return sortCreators(withoutFeatured, sort);
   }, [creators, searchQuery, filters, featured, sort]);
 
   const visibleResults = results.slice(0, visibleCount);
   const canLoadMore = visibleResults.length < results.length;
 
-  function toggleFilter<K extends ArrayFilterKey>(group: K, value: CreatorFilterState[K][number]) {
+  function toggleFilter<K extends ArrayFilterKey>(
+    group: K,
+    value: CreatorFilterState[K][number],
+  ) {
     setVisibleCount(PAGE_SIZE);
     setFilters((prev) => {
       const current = prev[group];
-      const exists = (current as CreatorFilterState[K][number][]).includes(value);
-      const next = exists ? current.filter((item) => item !== value) : [...current, value];
+      const exists = (current as CreatorFilterState[K][number][]).includes(
+        value,
+      );
+      const next = exists
+        ? current.filter((item) => item !== value)
+        : [...current, value];
       return { ...prev, [group]: next };
     });
   }
@@ -140,7 +157,11 @@ export function CreatorsView() {
       <CreatorsHero />
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <CreatorSearch value={searchQuery} onChange={handleSearchChange} className="sm:max-w-sm" />
+        <CreatorSearch
+          value={searchQuery}
+          onChange={handleSearchChange}
+          className="sm:max-w-sm"
+        />
 
         <div className="flex items-center gap-2 sm:ml-auto">
           <button
@@ -159,7 +180,11 @@ export function CreatorsView() {
             )}
           </button>
 
-          <CreatorSortSelect value={sort} onChange={handleSortChange} className="min-w-[190px]" />
+          <CreatorSortSelect
+            value={sort}
+            onChange={handleSortChange}
+            className="min-w-[190px]"
+          />
 
           {hasActiveFilters && (
             <button
@@ -202,7 +227,10 @@ export function CreatorsView() {
           {!error && !loading && (
             <>
               {featured && (
-                <section aria-labelledby="featured-creator-heading" className="mb-10">
+                <section
+                  aria-labelledby="featured-creator-heading"
+                  className="mb-10"
+                >
                   <h2 id="featured-creator-heading" className="sr-only">
                     Featured creator
                   </h2>
@@ -215,12 +243,20 @@ export function CreatorsView() {
               )}
 
               <section aria-labelledby="creator-results-heading">
-                <h2 id="creator-results-heading" className="font-display mb-6 text-2xl font-bold sm:text-3xl">
-                  {hasActiveFilters ? `${results.length} creators found` : "All creators"}
+                <h2
+                  id="creator-results-heading"
+                  className="font-display mb-6 text-2xl font-bold sm:text-3xl"
+                >
+                  {hasActiveFilters
+                    ? `${results.length} creators found`
+                    : "All creators"}
                 </h2>
 
                 {visibleResults.length === 0 ? (
-                  <CreatorsEmptyState onClear={clearAll} showClear={hasActiveFilters} />
+                  <CreatorsEmptyState
+                    onClear={clearAll}
+                    showClear={hasActiveFilters}
+                  />
                 ) : (
                   <>
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -251,8 +287,14 @@ export function CreatorsView() {
                 )}
               </section>
 
-              <section aria-labelledby="creator-categories-heading" className="mt-12">
-                <h2 id="creator-categories-heading" className="font-display mb-4 text-lg font-bold">
+              <section
+                aria-labelledby="creator-categories-heading"
+                className="mt-12"
+              >
+                <h2
+                  id="creator-categories-heading"
+                  className="font-display mb-4 text-lg font-bold"
+                >
                   Browse by category
                 </h2>
                 <CreatorCategoryStrip
@@ -280,7 +322,9 @@ export function CreatorsView() {
             className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t-2 border-black bg-white p-5 pb-8 shadow-offset"
           >
             <div className="mb-4 flex items-center justify-between">
-              <span className="font-display text-lg font-bold">Filter creators</span>
+              <span className="font-display text-lg font-bold">
+                Filter creators
+              </span>
               <button
                 ref={firstDrawerFieldRef}
                 type="button"

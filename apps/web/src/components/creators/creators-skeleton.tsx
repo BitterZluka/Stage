@@ -1,5 +1,10 @@
 function SkeletonBlock({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-black/10 ${className}`} aria-hidden="true" />;
+  return (
+    <div
+      className={`animate-pulse rounded-lg bg-black/10 ${className}`}
+      aria-hidden="true"
+    />
+  );
 }
 
 export function FeaturedCreatorSkeleton() {

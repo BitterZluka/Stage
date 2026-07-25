@@ -27,10 +27,12 @@ const REWARD_OPTIONS: { value: RewardType; label: string }[] = [
   { value: "both", label: "Both" },
 ];
 
-
 export interface ChallengeFiltersProps {
   filters: ChallengeFilterState;
-  onToggle<K extends keyof ChallengeFilterState>(group: K, value: ChallengeFilterState[K][number]): void;
+  onToggle<K extends keyof ChallengeFilterState>(
+    group: K,
+    value: ChallengeFilterState[K][number],
+  ): void;
   onClear: () => void;
   activeCount: number;
   heading?: string;
@@ -102,10 +104,20 @@ export function ChallengeFilters({
   );
 }
 
-function FilterGroup({ title, children, last = false }: { title: string; children: ReactNode; last?: boolean }) {
+function FilterGroup({
+  title,
+  children,
+  last = false,
+}: {
+  title: string;
+  children: ReactNode;
+  last?: boolean;
+}) {
   return (
     <fieldset className={last ? "" : "mb-5 border-b-2 border-black/10 pb-5"}>
-      <legend className="mb-2 text-xs font-bold tracking-wide text-black/50 uppercase">{title}</legend>
+      <legend className="mb-2 text-xs font-bold tracking-wide text-black/50 uppercase">
+        {title}
+      </legend>
       <div className="flex flex-col gap-0.5">{children}</div>
     </fieldset>
   );

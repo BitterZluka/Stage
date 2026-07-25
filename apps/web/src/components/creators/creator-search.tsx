@@ -7,18 +7,27 @@ export interface CreatorSearchProps {
   className?: string;
 }
 
-export function CreatorSearch({ value, onChange, className = "" }: CreatorSearchProps) {
+export function CreatorSearch({
+  value,
+  onChange,
+  className = "",
+}: CreatorSearchProps) {
   return (
     <div className={`relative w-full ${className}`}>
       <label htmlFor="creator-search" className="sr-only">
         Search creators
       </label>
-      <SearchIcon size={16} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-black/50" />
+      <SearchIcon
+        size={16}
+        className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-black/50"
+      />
       <input
         id="creator-search"
         type="search"
         value={value}
-        onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
+        onChange={(event: ChangeEvent<HTMLInputElement>) =>
+          onChange(event.target.value)
+        }
         placeholder="Search creators, categories, tokens..."
         className="w-full rounded-xl border-2 border-black py-3 pr-4 pl-10 text-sm placeholder:text-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
       />
