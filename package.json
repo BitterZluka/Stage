@@ -12,6 +12,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:business": "turbo run test --filter=@creator-platform/api --filter=@creator-platform/shared --filter=@creator-platform/hedera --filter=@stage/world",
     "format": "prettier --write .",
     "db:generate": "pnpm --filter @creator-platform/database db:generate",
     "db:migrate": "pnpm --filter @creator-platform/database db:migrate",

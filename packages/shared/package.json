@@ -18,8 +18,12 @@
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc -b --watch",
-    "lint": "eslint src --max-warnings=0",
-    "typecheck": "tsc -b --pretty false",
-    "test": "node --test"
+    "lint": "eslint src test --max-warnings=0",
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.test.json --pretty false",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.23.1"
   }
 }
