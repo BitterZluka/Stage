@@ -1,144 +1,23 @@
-import {
-  TransactionStatus,
-  type BurnNftInput,
-  type CreateClaimNftCollectionInput,
-  type CreateClaimNftCollectionResult,
-  type CreateCreatorTokenInput,
-  type CreateCreatorTokenResult,
-  type CreditMintInput,
-  type CreditTransferInput,
-  type HederaAccountId,
-  type HederaProvider,
-  type HederaReadMetadata,
-  type HederaTokenId,
-  type HederaTransactionResult,
-  type HcsAuditMessageInput,
-  type HcsAuditMessageResult,
-  type MintNftInput,
-  type MintNftResult,
-  type NftSerial,
-  type NftTransferInput,
-  type TokenAmount,
-  type TransactionId,
-} from "@creator-platform/shared";
-
-export type HederaNetwork = "testnet" | "previewnet" | "mainnet";
-
-export interface HederaAdapterConfig {
-  network: HederaNetwork;
-  mirrorNodeUrl?: string;
-  operatorAccountId?: HederaAccountId;
-}
-
-const transactionResult = (key: string): HederaTransactionResult => ({
-  transactionId: `mock-${key}` as TransactionId,
-  status: TransactionStatus.Success,
-});
-
-/**
- * Deterministic provider for API/worker contract tests and local UI flows.
- * It never imports keys, signs, or submits a Hedera transaction.
- */
-export class MockHederaProvider implements HederaProvider {
-  async createCreatorToken(
-    input: CreateCreatorTokenInput,
-  ): Promise<CreateCreatorTokenResult> {
-    return {
-      ...transactionResult(input.operation.idempotencyKey),
-      tokenId: "0.0.1001" as HederaTokenId,
-    };
-  }
-
-  async mintCredits(input: CreditMintInput): Promise<HederaTransactionResult> {
-    return transactionResult(input.operation.idempotencyKey);
-  }
-
-  async transferCredits(
-    input: CreditTransferInput,
-  ): Promise<HederaTransactionResult> {
-    return transactionResult(input.operation.idempotencyKey);
-  }
-
-  async createClaimNftCollection(
-    input: CreateClaimNftCollectionInput,
-  ): Promise<CreateClaimNftCollectionResult> {
-    return {
-      ...transactionResult(input.operation.idempotencyKey),
-      tokenId: "0.0.2001" as HederaTokenId,
-    };
-  }
-
-  async mintNft(input: MintNftInput): Promise<MintNftResult> {
-    return {
-      ...transactionResult(input.operation.idempotencyKey),
-      serial: "1" as NftSerial,
-    };
-  }
-
-  async transferNft(input: NftTransferInput): Promise<HederaTransactionResult> {
-    return transactionResult(input.operation.idempotencyKey);
-  }
-
-  async burnNft(input: BurnNftInput): Promise<HederaTransactionResult> {
-    return transactionResult(input.operation.idempotencyKey);
-  }
-
-  async submitHcsAuditMessage(
-    input: HcsAuditMessageInput,
-  ): Promise<HcsAuditMessageResult> {
-    return {
-      ...transactionResult(input.operation.idempotencyKey),
-      sequenceNumber: "1",
-    };
-  }
-
-  async isTokenAssociated(
-    _accountId: HederaAccountId,
-    _tokenId: HederaTokenId,
-    _metadata: HederaReadMetadata,
-  ): Promise<boolean> {
-    void _accountId;
-    void _tokenId;
-    void _metadata;
-    return true;
-  }
-
-  async getTokenBalance(
-    _accountId: HederaAccountId,
-    _tokenId: HederaTokenId,
-    _metadata: HederaReadMetadata,
-  ): Promise<TokenAmount> {
-    void _accountId;
-    void _tokenId;
-    void _metadata;
-    return "0" as TokenAmount;
-  }
-
-  async getNftOwner(
-    _tokenId: HederaTokenId,
-    _serial: NftSerial,
-    _metadata: HederaReadMetadata,
-  ): Promise<HederaAccountId | undefined> {
-    void _tokenId;
-    void _serial;
-    void _metadata;
-    return undefined;
-  }
-
-  async getTransactionStatus(
-    _transactionId: TransactionId,
-    _metadata: HederaReadMetadata,
-  ): Promise<TransactionStatus> {
-    void _transactionId;
-    void _metadata;
-    return TransactionStatus.Success;
-  }
-}
-
-/**
- * Configuration boundary for the future @hashgraph/sdk-backed implementation.
- * TODO: Implement HederaProvider methods in Stage 1; never return raw SDK objects.
- */
-export class SdkHederaProvider {
-  constructor(readonly config: HederaAdapterConfig) {}
-}
+export { loadStageHederaConfig, type StageHederaConfig } from "./config.js";
+export {
+  StageHederaError,
+  normalizeHederaError,
+  type StageHederaErrorCode,
+} from "./errors.js";
+export {
+  InMemoryIdempotencyStore,
+  JsonFileIdempotencyStore,
+  type IdempotencyRecord,
+  type IdempotencyState,
+  type IdempotencyStore,
+  type ReserveIdempotencyInput,
+} from "./idempotency.js";
+export {
+  MirrorNodeClient,
+  type MirrorNodeClientOptions,
+  type MirrorNodeConfig,
+} from "./mirror-node.js";
+export { MockHederaProvider } from "./mock-provider.js";
+export { SdkHederaProvider } from "./sdk-hedera-provider.js";
+export { StageHedera, type StageHederaOptions } from "./stage-hedera.js";
+export * from "./types.js";

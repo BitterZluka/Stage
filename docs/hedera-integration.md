@@ -6,9 +6,11 @@
 
 `packages/shared` exports the public `HederaProvider` port, while `packages/hedera` exports:
 
-- `SdkHederaProvider` for testnet/mainnet, implementing the shared port;
+- `SdkHederaProvider` for Testnet, implementing the shared port;
 - `MockHederaProvider` for backend-independent E2E/local development;
-- a Mirror reader, canonical HCS serializer, and error classifier.
+- `StageHedera` for the complete HTS/HCS/Mirror API;
+- a Mirror reader, canonical HCS serializer, idempotency stores,
+  wallet-association preparation, and error classifier.
 
 It does not export SDK `Client`, transaction/receipt/key objects and has no knowledge of Prisma entities. The API/worker pass decimal strings and public IDs. The adapter loads secrets from the runtime secret store.
 
@@ -45,6 +47,10 @@ One MVP audit topic. The message is canonical minified UTF-8 JSON:
 ```
 
 Only the allowlist from `domain-model.md` is included in `data`. The serializer rejects unknown fields, PII tags, and payloads above the selected limit. Large data is not automatically chunked: a hash/anchor is published, while the content remains in the DB/object storage.
+
+The adapter enforces the shared event-type allowlist, requires an explicit UTC
+timestamp, recursively rejects sensitive field-name categories, and caps each
+canonical event at 1,024 bytes.
 
 HCS order is consensus order, not DB commit order. `eventId` and `occurredAt` preserve domain causality; consumers deduplicate by `eventId`.
 
@@ -110,16 +116,26 @@ The private key is never serialized into a job, DB, log, or response. The job co
 ## Configuration
 
 ```text
-HEDERA_NETWORK=testnet|mainnet
+HEDERA_NETWORK=testnet
 HEDERA_OPERATOR_ACCOUNT_ID
 HEDERA_OPERATOR_PRIVATE_KEY       # secret
 HEDERA_TREASURY_ACCOUNT_ID
 HEDERA_TREASURY_PRIVATE_KEY       # secret
+HEDERA_SUPPLY_PRIVATE_KEY         # secret
+HEDERA_HCS_ADMIN_PRIVATE_KEY      # optional secret
+HEDERA_HCS_SUBMIT_PRIVATE_KEY     # secret
 HEDERA_AUDIT_TOPIC_ID
 HEDERA_MIRROR_NODE_URL
+HEDERA_EXPLORER_BASE_URL
+HEDERA_REQUEST_TIMEOUT_MS
+HEDERA_RECEIPT_TIMEOUT_MS
+HEDERA_MAX_ATTEMPTS
 ```
 
-Startup validation prohibits mainnet with testnet IDs/endpoints or empty topic/treasury values. **Temporary MVP solution:** testnet and one process-level SDK client with lifecycle hooks; mainnet is disabled by a feature flag.
+Startup validation rejects any network other than Testnet, invalid account
+IDs/keys/URLs, missing signer roles, and invalid timeout/attempt bounds. Each
+service instance owns one SDK client and exposes an explicit `close()` lifecycle
+method.
 
 ## Observability and checks
 

@@ -1,7 +1,8 @@
 {
   "name": "@creator-platform/hedera",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
+  "description": "Stage Hedera Testnet integration for HTS, HCS, and Mirror Node",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,20 +13,40 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    ".env.example"
   ],
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc -b --watch",
-    "lint": "eslint src",
-    "typecheck": "tsc -b --pretty false",
-    "test": "node --test",
-    "hedera:setup": "node ../../scripts/hedera-setup.mjs",
-    "hedera:create-topic": "node ../../scripts/hedera-create-topic.mjs",
-    "hedera:create-demo-token": "node ../../scripts/hedera-create-demo-token.mjs"
+    "lint": "eslint src scripts test",
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.scripts.json --pretty false",
+    "test": "node --import tsx --test test/*.test.ts",
+    "testnet:balance": "tsx --env-file-if-exists=.env scripts/testnet/01-check-account-balance.ts",
+    "testnet:create-ft": "tsx --env-file-if-exists=.env scripts/testnet/02-create-fungible-token.ts",
+    "testnet:mint-ft": "tsx --env-file-if-exists=.env scripts/testnet/03-mint-fungible-token.ts",
+    "testnet:prepare-association": "tsx --env-file-if-exists=.env scripts/testnet/04-check-token-association.ts",
+    "testnet:associate-test-wallet": "tsx --env-file-if-exists=.env scripts/testnet/04b-associate-with-test-wallet.ts",
+    "testnet:transfer-ft": "tsx --env-file-if-exists=.env scripts/testnet/05-transfer-fungible-token.ts",
+    "testnet:verify-ft": "tsx --env-file-if-exists=.env scripts/testnet/06-verify-fungible-transfer.ts",
+    "testnet:create-topic": "tsx --env-file-if-exists=.env scripts/testnet/07-create-topic.ts",
+    "testnet:publish-audit": "tsx --env-file-if-exists=.env scripts/testnet/08-publish-audit-event.ts",
+    "testnet:read-audit": "tsx --env-file-if-exists=.env scripts/testnet/09-read-topic-messages.ts",
+    "testnet:create-nft": "tsx --env-file-if-exists=.env scripts/testnet/10-create-nft-collection.ts",
+    "testnet:mint-nft": "tsx --env-file-if-exists=.env scripts/testnet/11-mint-nft.ts",
+    "testnet:burn-nft": "tsx --env-file-if-exists=.env scripts/testnet/12-burn-nft.ts",
+    "hedera:setup": "pnpm testnet:balance",
+    "hedera:create-topic": "pnpm testnet:create-topic",
+    "hedera:create-demo-token": "pnpm testnet:create-ft"
   },
   "dependencies": {
     "@creator-platform/shared": "workspace:*",
-    "@hashgraph/sdk": "^2.0.0"
+    "@hashgraph/sdk": "2.81.0",
+    "long": "5.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.23.1"
   }
 }
