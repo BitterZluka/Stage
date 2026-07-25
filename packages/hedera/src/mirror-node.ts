@@ -1,5 +1,6 @@
 import { StageHederaError } from "./errors.js";
 import type {
+  AccountKeyInfo,
   GetTopicMessagesInput,
   MirrorTransaction,
   NftOwner,
@@ -197,6 +198,33 @@ export class MirrorNodeClient {
       memo: stringValue(data.memo),
       createdTimestamp: nullableString(data.created_timestamp),
       modifiedTimestamp: nullableString(data.modified_timestamp),
+    };
+  }
+
+  async getAccountKey(accountId: string): Promise<AccountKeyInfo> {
+    const data = objectValue(
+      await this.request(
+        `/api/v1/accounts/${encodeURIComponent(accountId)}`,
+        true,
+      ),
+      "account response",
+    );
+    const key = objectValue(data.key, "account key");
+    const keyType = stringValue(key._type);
+    const publicKey = stringValue(key.key);
+    if (!keyType || !publicKey) {
+      throw new StageHederaError({
+        code: "MIRROR_NODE_ERROR",
+        message: "Mirror Node account response does not contain a simple public key",
+        operation: "getAccountKey",
+        retryable: false,
+        context: { accountId },
+      });
+    }
+    return {
+      accountId: stringValue(data.account, accountId),
+      keyType,
+      publicKey,
     };
   }
 

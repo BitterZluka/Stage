@@ -107,6 +107,25 @@ export interface AccountBalance {
   tokenBalances: Record<string, string>;
 }
 
+export interface AccountKeyInfo {
+  accountId: string;
+  keyType: string;
+  publicKey: string;
+}
+
+export interface VerifyWalletSignatureInput {
+  accountId: string;
+  message: string;
+  signatureBase64: string;
+}
+
+export interface WalletSignatureVerification {
+  valid: boolean;
+  accountId: string;
+  keyType: string;
+  publicKey: string;
+}
+
 export interface CreateNftCollectionInput {
   idempotencyKey: string;
   name: string;

@@ -113,6 +113,18 @@ The private key is never serialized into a job, DB, log, or response. The job co
 - Cache: immutable token metadata for 5 minutes; balances for 5–15 seconds; negative lookup for no more than 2 seconds after a write.
 - Reconciliation periodically checks `SUBMITTED` operations and transitions them to `CONFIRMED/FAILED/NEEDS_REVIEW`.
 
+## Wallet login signatures
+
+Wallet login is an off-chain operation. The API creates a one-time UTF-8
+message, the wallet signs those exact bytes, and `packages/hedera` verifies the
+base64-encoded raw signature against the account public key returned by Mirror
+Node. Successful first login creates `User` and `Wallet` records and an opaque
+hashed session; it does not submit a Hedera transaction.
+
+**MVP limitation:** direct ED25519/ECDSA account keys are supported. Threshold
+keys, key lists, and wallet-specific signature-map envelopes require an
+explicit adapter before they can be accepted.
+
 ## Configuration
 
 ```text

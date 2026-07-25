@@ -4,7 +4,7 @@ Base URL: `/api/v1`. JSON, ISO-8601 UTC dates, string IDs, and decimal-string to
 
 ## General rules
 
-- Auth: secure httpOnly session cookie (web) or Bearer JWT; `401` means the session is missing/invalid, while `403` means a policy denial.
+- Auth: an opaque secure httpOnly session cookie; `401` means the session is missing/invalid, while `403` means a policy denial. The first verified wallet login creates the off-chain user automatically.
 - Idempotency: mutations with an external effect require `Idempotency-Key`; a repeated request returns the same resource/operation.
 - Async response: `202 { "operationId": "...", "status": "PENDING" }`.
 - Pagination: `?cursor=&limit=20`, response `{ items, nextCursor }`, maximum 100.
@@ -32,8 +32,8 @@ Chain column: `—` — none; `R` — Hedera/Mirror read; `W(outbox)` — write 
 
 | Area | Method / path | Request DTO → response | Auth / authz | Errors beyond common errors | Chain | Sync |
 |---|---|---|---|---|---|---|
-| Auth | `POST /auth/challenge` | `{ accountId? }` → `{ challengeId, message, expiresAt }` | Public; rate limit | `ACCOUNT_INVALID` | — | sync |
-| Auth | `POST /auth/session` | `{ challengeId, signature?, emailCode? }` → `{ user, expiresAt }` | Public; challenge owner | `CHALLENGE_EXPIRED`, `SIGNATURE_INVALID` | — | sync |
+| Auth | `POST /auth/challenge` | `{ accountId }` → `{ challengeId, message, expiresAt }` | Public; rate limit | `ACCOUNT_INVALID` | Mirror key read on session creation | sync |
+| Auth | `POST /auth/session` | `{ challengeId, signature }` → `{ user: { id, accountIds }, expiresAt }` + httpOnly cookie | Public; one-time challenge | `LOGIN_CHALLENGE_INVALID`, `SIGNATURE_INVALID`, `SIGNATURE_VERIFICATION_UNAVAILABLE` | Mirror account-key read | sync |
 | Auth | `GET /auth/me` | — → `UserView` | User; self | — | — | sync |
 | Auth | `DELETE /auth/session` | — → `204` | User; self | — | — | sync |
 | Creators | `GET /creators` | query `cursor,limit` → page `CreatorCard` | Public | — | — | sync |

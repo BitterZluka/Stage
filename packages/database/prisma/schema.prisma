@@ -49,14 +49,43 @@ model User {
   rewardPayouts      RewardPayout[]
   worldVerifications WorldVerification[]
   claims             Claim[]
+  sessions           Session[]
 }
 
 model Wallet {
-  id        String   @id @default(uuid())
-  userId    String
-  accountId String   @unique
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  userId     String
+  accountId  String   @unique
+  publicKey  String?
+  verifiedAt DateTime
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LoginChallenge {
+  id        String    @id @default(uuid())
+  accountId String
+  message   String
+  nonceHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([accountId, expiresAt])
+}
+
+model Session {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
 }
 
 model Creator {

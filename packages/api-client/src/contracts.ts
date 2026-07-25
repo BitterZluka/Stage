@@ -5,6 +5,7 @@ import type {
   ClaimId,
   Creator,
   CreatorId,
+  HederaAccountId,
   IdempotencyKey,
   IsoTimestamp,
   Page,
@@ -41,7 +42,10 @@ export interface OperationAccepted {
 }
 
 export interface SessionView {
-  userId: UserId;
+  user: {
+    id: UserId;
+    accountIds: HederaAccountId[];
+  };
   expiresAt: IsoTimestamp;
 }
 

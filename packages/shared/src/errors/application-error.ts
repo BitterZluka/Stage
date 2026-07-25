@@ -5,6 +5,7 @@ export type ApplicationError =
   | ErrorShape<"NOT_FOUND", false>
   | ErrorShape<"CONFLICT", false>
   | ErrorShape<"UNAUTHORIZED", false>
+  | ErrorShape<"UNAUTHENTICATED", false>
   | ErrorShape<"FORBIDDEN", false>
   | ErrorShape<"RATE_LIMITED", true>
   | ErrorShape<"DEPENDENCY_UNAVAILABLE", true>
@@ -15,6 +16,9 @@ export type ApplicationError =
   | ErrorShape<"INSUFFICIENT_TOKEN_BALANCE", false>
   | ErrorShape<"WORLD_VERIFICATION_FAILED", false>
   | ErrorShape<"WORLD_PROOF_REPLAYED", false>
+  | ErrorShape<"LOGIN_CHALLENGE_INVALID", false>
+  | ErrorShape<"SIGNATURE_INVALID", false>
+  | ErrorShape<"SIGNATURE_VERIFICATION_UNAVAILABLE", true>
   | ErrorShape<"INTERNAL_ERROR", true>;
 
 export interface ErrorShape<Code extends string, Retryable extends boolean> {

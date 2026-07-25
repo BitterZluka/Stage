@@ -4,7 +4,7 @@
 
 | Bounded context | Aggregates / entities | Invariants |
 |---|---|---|
-| Identity | `User`, `Session`, `WorldVerification` | one active verification per user; a proof is not a profile |
+| Identity | `User`, `Wallet`, `LoginChallenge`, `Session`, `WorldVerification` | wallet ownership is proven by a one-time signature; first login creates the user; a World proof is not authentication |
 | Creators | `CreatorProfile`, `Membership` | only the owner/admin may change the profile; the handle is unique |
 | Creator Economy | `CreatorToken`, `TokenOperation` | one active token per creator; amounts are decimal strings |
 | Challenges | `Challenge`, `Submission`, `Review` | submission only within the window; reward after acceptance; one decision per version |

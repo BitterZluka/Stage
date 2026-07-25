@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import cookie from "@fastify/cookie";
 import { NestFactory } from "@nestjs/core";
 import {
   FastifyAdapter,
@@ -11,7 +12,11 @@ async function bootstrap(): Promise<void> {
     AppModule,
     new FastifyAdapter(),
   );
-  app.enableCors({ origin: process.env.WEB_ORIGIN ?? "http://localhost:3000" });
+  await app.register(cookie);
+  app.enableCors({
+    origin: process.env.WEB_ORIGIN ?? "http://localhost:3000",
+    credentials: true,
+  });
   app.setGlobalPrefix("api/v1");
   await app.listen(Number(process.env.API_PORT ?? 4000), "0.0.0.0");
 }

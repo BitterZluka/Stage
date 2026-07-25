@@ -20,4 +20,5 @@ export {
 export { MockHederaProvider } from "./mock-provider.js";
 export { SdkHederaProvider } from "./sdk-hedera-provider.js";
 export { StageHedera, type StageHederaOptions } from "./stage-hedera.js";
+export { HederaWalletSignatureVerifier } from "./wallet-signature-verifier.js";
 export * from "./types.js";
