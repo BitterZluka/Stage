@@ -10,7 +10,7 @@ run(async () => {
   const { hedera } = createScriptContext();
   try {
     const result = await hedera.createFungibleToken({
-      idempotencyKey: "stage:testnet:fungible-token:v1",
+      idempotencyKey: "stage:testnet:fungible-token:v2",
       name: process.env.STAGE_TOKEN_NAME ?? "Stage Creator Credit",
       symbol: process.env.STAGE_TOKEN_SYMBOL ?? "STAGEC",
       decimals: Number(process.env.STAGE_TOKEN_DECIMALS ?? "2"),

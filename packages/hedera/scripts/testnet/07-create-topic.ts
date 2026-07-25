@@ -4,7 +4,7 @@ run(async () => {
   const { config, hedera } = createScriptContext();
   try {
     const result = await hedera.createTopic({
-      idempotencyKey: "stage:testnet:hcs-topic:v1",
+      idempotencyKey: "stage:testnet:hcs-topic:v2",
       memo: process.env.STAGE_HCS_TOPIC_MEMO ?? "Stage audit events v1",
       adminKey: config.hcsAdminPrivateKey ? "configured" : "none",
     });

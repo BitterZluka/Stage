@@ -702,6 +702,10 @@ export class StageHedera {
       idempotencyKey: input.idempotencyKey,
       payload,
       transaction,
+      signerKeys:
+        adminKey === "configured" && this.config.hcsAdminPrivateKey
+          ? [this.config.hcsAdminPrivateKey]
+          : [],
       mapReceipt: (receipt, base) => {
         const createdTopicId = receipt.topicId?.toString();
         if (!createdTopicId) {

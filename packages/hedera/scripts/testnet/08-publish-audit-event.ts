@@ -20,8 +20,11 @@ run(async () => {
     const rewardTransaction = state.lastRewardTransactionId
       ? await hedera.getTransaction(state.lastRewardTransactionId)
       : null;
+    const configuredOccurredAt =
+      process.env.STAGE_AUDIT_OCCURRED_AT?.trim();
+
     const occurredAt =
-      process.env.STAGE_AUDIT_OCCURRED_AT ??
+      configuredOccurredAt ||
       (rewardTransaction?.consensusTimestamp
         ? consensusTimestampToIso(rewardTransaction.consensusTimestamp)
         : undefined);
