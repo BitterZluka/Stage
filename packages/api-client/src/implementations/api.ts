@@ -5,6 +5,7 @@ import type {
   CreateCreatorInput,
   Creator,
   CreatorId,
+  SessionView,
   MutationOptions,
   OperationAccepted,
   Page,
@@ -12,17 +13,98 @@ import type {
   RewardPayout,
   SubmissionId,
 } from "../contracts.js";
+import type { AuthService } from "../services/auth-service.js";
 import type { ChallengeService } from "../services/challenge-service.js";
 import type { CreatorService } from "../services/creator-service.js";
 import type { RewardService } from "../services/reward-service.js";
 
+export class ApiClientError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "ApiClientError";
+  }
+}
+
 abstract class ApiServiceContract {
-  constructor(protected readonly baseUrl: string) {}
+  protected readonly baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl.replace(/\/$/, "");
+  }
 
   protected notImplemented(): never {
     throw new Error(
       "TODO: connect the typed HTTP transport in the frontend integration stage",
     );
+  }
+
+  protected async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      ...init,
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        ...init.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as {
+        error?: { code?: string; message?: string };
+      } | null;
+      throw new ApiClientError(
+        body?.error?.message ??
+          `API request failed with status ${response.status}`,
+        response.status,
+        body?.error?.code,
+      );
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return (await response.json()) as T;
+  }
+}
+
+export class ApiAuthService extends ApiServiceContract implements AuthService {
+  requestLoginMessage(
+    accountId: Parameters<AuthService["requestLoginMessage"]>[0],
+  ) {
+    return this.request<
+      Awaited<ReturnType<AuthService["requestLoginMessage"]>>
+    >("/auth/challenge", {
+      method: "POST",
+      body: JSON.stringify({ accountId }),
+    });
+  }
+
+  createSession(input: Parameters<AuthService["createSession"]>[0]) {
+    return this.request<SessionView>("/auth/session", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async getSession(): Promise<SessionView | null> {
+    try {
+      return await this.request<SessionView>("/auth/me");
+    } catch (error) {
+      if (error instanceof ApiClientError && error.status === 401) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  signOut(): Promise<void> {
+    return this.request<void>("/auth/session", { method: "DELETE" });
   }
 }
 

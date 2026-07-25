@@ -17,6 +17,7 @@ export type ApplicationError =
   | ErrorShape<"WORLD_VERIFICATION_FAILED", false>
   | ErrorShape<"WORLD_PROOF_REPLAYED", false>
   | ErrorShape<"LOGIN_CHALLENGE_INVALID", false>
+  | ErrorShape<"WALLET_ACCOUNT_NOT_FOUND", false>
   | ErrorShape<"SIGNATURE_INVALID", false>
   | ErrorShape<"SIGNATURE_VERIFICATION_UNAVAILABLE", true>
   | ErrorShape<"INTERNAL_ERROR", true>;

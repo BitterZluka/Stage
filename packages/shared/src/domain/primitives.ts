@@ -23,6 +23,7 @@ export type FileId = Brand<string, "FileId">;
 export type TransactionId = Brand<string, "TransactionId">;
 export type HederaTokenId = Brand<string, "HederaTokenId">;
 export type HederaAccountId = Brand<string, "HederaAccountId">;
+export type EvmAddress = Brand<string, "EvmAddress">;
 export type NftSerial = Brand<string, "NftSerial">;
 export type DomainEventId = Brand<string, "DomainEventId">;
 export type AuditEventId = Brand<string, "AuditEventId">;

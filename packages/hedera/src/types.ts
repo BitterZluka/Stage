@@ -113,17 +113,24 @@ export interface AccountKeyInfo {
   publicKey: string;
 }
 
-export interface VerifyWalletSignatureInput {
+export interface AccountIdentityInfo {
   accountId: string;
+  evmAddress: string | null;
+  keyType: string | null;
+  publicKey: string | null;
+}
+
+export interface VerifyWalletSignatureInput {
+  identity: string;
   message: string;
-  signatureBase64: string;
+  signature: string;
 }
 
 export interface WalletSignatureVerification {
   valid: boolean;
   accountId: string;
-  keyType: string;
-  publicKey: string;
+  keyType: string | null;
+  publicKey: string | null;
 }
 
 export interface CreateNftCollectionInput {

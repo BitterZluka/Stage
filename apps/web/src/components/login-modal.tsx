@@ -1,31 +1,72 @@
 "use client";
 
+import { ApiClientError } from "@creator-platform/api-client";
 import { useEffect, useRef, useState } from "react";
+import { useAuth, type WalletKind } from "../auth/auth-provider";
 import { CloseIcon } from "./icons";
 import { Button } from "./ui/button";
 
 export interface LoginModalProps {
   open: boolean;
+  onOpen: () => void;
   onClose: () => void;
 }
 
-/**
- * Role-neutral login modal: a user never chooses "follower" or "creator"
- * here, they just log in. Creator Studio access is decided later by whether
- * the account has a creator profile.
- *
- * This phase has no auth backend wired up yet — submitting only closes the
- * dialog. The future integration point is `AuthService`/`SessionView` from
- * `@creator-platform/api-client` (see `packages/api-client/src/services/auth-service.ts`).
- */
-export function LoginModal({ open, onClose }: LoginModalProps) {
+function getLoginErrorMessage(error: unknown): string {
+  if (error instanceof ApiClientError) {
+    if (error.code === "SIGNATURE_INVALID") {
+      return "The wallet signature could not be verified. Please try again.";
+    }
+    if (error.code === "LOGIN_CHALLENGE_INVALID") {
+      return "The login request expired. Please try again.";
+    }
+    if (error.code === "WALLET_ACCOUNT_NOT_FOUND") {
+      return "This MetaMask account is not funded on Hedera testnet yet.";
+    }
+    return error.message;
+  }
+  if (error instanceof Error) {
+    if (/reject|cancel|closed/i.test(error.message)) {
+      return "The wallet request was cancelled.";
+    }
+    return error.message;
+  }
+  return "Login failed. Please try again.";
+}
+
+export function LoginModal({ open, onOpen, onClose }: LoginModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [email, setEmail] = useState("");
+  const { login, authenticating } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [activeWallet, setActiveWallet] = useState<WalletKind | null>(null);
+
+  async function handleLogin(wallet: WalletKind) {
+    setError(null);
+    setActiveWallet(wallet);
+    let walletModalOpened = false;
+    try {
+      await login(wallet, {
+        onWalletModalOpening: () => {
+          walletModalOpened = true;
+          onClose();
+        },
+      });
+      onClose();
+    } catch (loginError) {
+      setError(getLoginErrorMessage(loginError));
+      if (walletModalOpened) {
+        onOpen();
+      }
+    } finally {
+      setActiveWallet(null);
+    }
+  }
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open && !dialog.open) {
+      setError(null);
       dialog.showModal();
     } else if (!open && dialog.open) {
       dialog.close();
@@ -45,10 +86,7 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
       className="m-auto w-full max-w-sm rounded-3xl border-2 border-black bg-white p-0 shadow-offset backdrop:bg-black/55 backdrop:backdrop-blur-sm"
     >
       <div className="flex items-center justify-between rounded-t-3xl border-b-2 border-black bg-gradient-to-br from-stage-aqua to-stage-lavender p-6">
-        <h2
-          id="login-modal-title"
-          className="font-display text-xl font-bold"
-        >
+        <h2 id="login-modal-title" className="font-display text-xl font-bold">
           Log in to STAGE
         </h2>
         <button
@@ -61,42 +99,51 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
         </button>
       </div>
 
-      <form
-        className="flex flex-col gap-4 p-6"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onClose();
-        }}
-      >
+      <div className="flex flex-col gap-4 p-6">
         <p className="text-sm text-gray-600">
-          One STAGE account is all you need — follow creators, join
-          challenges, and start creating whenever you&apos;re ready.
+          Connect MetaMask or a native Hedera wallet and sign a one-time
+          message. This does not submit a transaction or cost HBAR.
         </p>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="login-email" className="text-sm font-bold">
-            Email
-          </label>
-          <input
-            id="login-email"
-            type="email"
-            required
-            autoComplete="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-xl border-2 border-black px-4 py-3 text-sm placeholder:text-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
-          />
-        </div>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-xl border-2 border-red-700 bg-red-50 px-4 py-3 text-sm text-red-800"
+          >
+            {error}
+          </p>
+        )}
 
-        <Button type="submit" variant="holo" size="md" className="w-full">
-          Continue
+        <Button
+          type="button"
+          variant="holo"
+          size="md"
+          className="w-full"
+          disabled={authenticating}
+          onClick={() => void handleLogin("metamask")}
+        >
+          {activeWallet === "metamask"
+            ? "Confirm in MetaMask…"
+            : "Continue with MetaMask"}
+        </Button>
+
+        <Button
+          type="button"
+          variant="holo"
+          size="md"
+          className="w-full"
+          disabled={authenticating}
+          onClick={() => void handleLogin("hedera")}
+        >
+          {activeWallet === "hedera"
+            ? "Confirm in wallet…"
+            : "Continue with HashPack / Hedera"}
         </Button>
 
         <p className="text-center text-xs text-gray-400">
-          New here? Continuing creates your account automatically.
+          Your STAGE account is created automatically on first login.
         </p>
-      </form>
+      </div>
     </dialog>
   );
 }

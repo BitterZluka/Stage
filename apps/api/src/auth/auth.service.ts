@@ -6,6 +6,7 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from "@nestjs/common";
+import { StageHederaError } from "@creator-platform/hedera";
 import { DatabaseService } from "../database/database.service.js";
 import {
   buildWalletLoginMessage,
@@ -58,9 +59,12 @@ export class AuthService {
     expiresAt: string;
   }> {
     const now = new Date();
+    const identity = input.accountId.startsWith("0x")
+      ? input.accountId.toLowerCase()
+      : input.accountId;
     const recentChallenges = await this.database.loginChallenge.count({
       where: {
-        accountId: input.accountId,
+        accountId: identity,
         createdAt: { gte: new Date(now.getTime() - 60_000) },
       },
     });
@@ -80,7 +84,7 @@ export class AuthService {
     );
     const nonce = randomOpaqueValue();
     const message = buildWalletLoginMessage({
-      accountId: input.accountId,
+      accountId: identity,
       nonce,
       issuedAt: now,
       expiresAt,
@@ -91,14 +95,14 @@ export class AuthService {
     const challenge = await this.database.$transaction(async (transaction) => {
       await transaction.loginChallenge.updateMany({
         where: {
-          accountId: input.accountId,
+          accountId: identity,
           usedAt: null,
         },
         data: { usedAt: now },
       });
       return transaction.loginChallenge.create({
         data: {
-          accountId: input.accountId,
+          accountId: identity,
           message,
           nonceHash: sha256(nonce),
           expiresAt,
@@ -141,11 +145,20 @@ export class AuthService {
     let verification: Awaited<ReturnType<WalletSignatureVerifier["verify"]>>;
     try {
       verification = await this.signatureVerifier.verify({
-        accountId: challenge.accountId,
+        identity: challenge.accountId,
         message: challenge.message,
-        signatureBase64: input.signature,
+        signature: input.signature,
       });
-    } catch {
+    } catch (error) {
+      if (
+        error instanceof StageHederaError &&
+        error.code === "MIRROR_NODE_NOT_FOUND"
+      ) {
+        throw unauthorized(
+          "WALLET_ACCOUNT_NOT_FOUND",
+          "The wallet account does not exist on Hedera testnet",
+        );
+      }
       throw new ServiceUnavailableException({
         error: {
           code: "SIGNATURE_VERIFICATION_UNAVAILABLE",
@@ -153,7 +166,7 @@ export class AuthService {
         },
       });
     }
-    if (!verification.valid || verification.accountId !== challenge.accountId) {
+    if (!verification.valid) {
       throw unauthorized("SIGNATURE_INVALID", "Wallet signature is invalid");
     }
 
@@ -178,9 +191,9 @@ export class AuthService {
       }
 
       const wallet = await transaction.wallet.upsert({
-        where: { accountId: challenge.accountId },
+        where: { accountId: verification.accountId },
         create: {
-          accountId: challenge.accountId,
+          accountId: verification.accountId,
           publicKey: verification.publicKey,
           verifiedAt: now,
           user: { create: {} },

@@ -1,12 +1,12 @@
 export interface WalletSignatureVerifier {
   verify(input: {
-    accountId: string;
+    identity: string;
     message: string;
-    signatureBase64: string;
+    signature: string;
   }): Promise<{
     valid: boolean;
     accountId: string;
-    publicKey: string;
+    publicKey: string | null;
   }>;
 }
 

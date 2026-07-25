@@ -1,5 +1,6 @@
 import { StageHederaError } from "./errors.js";
 import type {
+  AccountIdentityInfo,
   AccountKeyInfo,
   GetTopicMessagesInput,
   MirrorTransaction,
@@ -201,18 +202,36 @@ export class MirrorNodeClient {
     };
   }
 
-  async getAccountKey(accountId: string): Promise<AccountKeyInfo> {
-    const data = objectValue(
-      await this.request(
-        `/api/v1/accounts/${encodeURIComponent(accountId)}`,
-        true,
-      ),
-      "account response",
+  async getAccountIdentity(identity: string): Promise<AccountIdentityInfo> {
+    const response = await this.request(
+      `/api/v1/accounts/${encodeURIComponent(identity)}`,
+      true,
     );
-    const key = objectValue(data.key, "account key");
-    const keyType = stringValue(key._type);
-    const publicKey = stringValue(key.key);
-    if (!keyType || !publicKey) {
+    if (response === null) {
+      throw new StageHederaError({
+        code: "MIRROR_NODE_NOT_FOUND",
+        message: "Mirror Node account was not found",
+        operation: "getAccountIdentity",
+        retryable: false,
+        context: { identity },
+      });
+    }
+    const data = objectValue(response, "account response");
+    const key =
+      data.key === null || data.key === undefined
+        ? null
+        : objectValue(data.key, "account key");
+    return {
+      accountId: stringValue(data.account, identity),
+      evmAddress: nullableString(data.evm_address),
+      keyType: key ? stringValue(key._type) || null : null,
+      publicKey: key ? stringValue(key.key) || null : null,
+    };
+  }
+
+  async getAccountKey(accountId: string): Promise<AccountKeyInfo> {
+    const account = await this.getAccountIdentity(accountId);
+    if (!account.keyType || !account.publicKey) {
       throw new StageHederaError({
         code: "MIRROR_NODE_ERROR",
         message: "Mirror Node account response does not contain a simple public key",
@@ -222,9 +241,9 @@ export class MirrorNodeClient {
       });
     }
     return {
-      accountId: stringValue(data.account, accountId),
-      keyType,
-      publicKey,
+      accountId: account.accountId,
+      keyType: account.keyType,
+      publicKey: account.publicKey,
     };
   }
 

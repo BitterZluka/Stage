@@ -1,8 +1,8 @@
-import type { HederaAccountId } from "@creator-platform/shared";
+import type { EvmAddress, HederaAccountId } from "@creator-platform/shared";
 import type { SessionView } from "../contracts.js";
 
 export interface AuthService {
-  requestLoginMessage(accountId: HederaAccountId): Promise<{
+  requestLoginMessage(accountId: HederaAccountId | EvmAddress): Promise<{
     challengeId: string;
     message: string;
     expiresAt: string;

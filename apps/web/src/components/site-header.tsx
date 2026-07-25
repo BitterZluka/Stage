@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../auth/auth-provider";
 import { CloseIcon, MenuIcon, SearchIcon } from "./icons";
 import { LoginModal } from "./login-modal";
 import { Button } from "./ui/button";
@@ -18,6 +19,7 @@ const NAV_LINKS = [
 export function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
+  const { session, loading, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -45,6 +47,21 @@ export function SiteHeader() {
     setMobileOpen(false);
     router.push("/explore");
   }
+
+  function handleAuthAction() {
+    if (session) {
+      void logout().catch(() => undefined);
+    } else {
+      setLoginOpen(true);
+    }
+  }
+
+  const accountId = session?.user.accountIds[0];
+  const authLabel = loading
+    ? "Checking…"
+    : accountId
+      ? `${accountId} · Log out`
+      : "Log in";
 
   return (
     <header
@@ -116,9 +133,10 @@ export function SiteHeader() {
             variant="primary"
             size="sm"
             className="hidden sm:inline-flex"
-            onClick={() => setLoginOpen(true)}
+            onClick={handleAuthAction}
+            disabled={loading}
           >
-            Log in
+            {authLabel}
           </Button>
 
           <button
@@ -192,16 +210,21 @@ export function SiteHeader() {
               className="mt-2 w-full"
               onClick={() => {
                 setMobileOpen(false);
-                setLoginOpen(true);
+                handleAuthAction();
               }}
+              disabled={loading}
             >
-              Log in
+              {authLabel}
             </Button>
           </nav>
         </div>
       )}
 
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <LoginModal
+        open={loginOpen}
+        onOpen={() => setLoginOpen(true)}
+        onClose={() => setLoginOpen(false)}
+      />
     </header>
   );
 }

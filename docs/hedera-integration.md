@@ -116,14 +116,20 @@ The private key is never serialized into a job, DB, log, or response. The job co
 ## Wallet login signatures
 
 Wallet login is an off-chain operation. The API creates a one-time UTF-8
-message, the wallet signs those exact bytes, and `packages/hedera` verifies the
-base64-encoded raw signature against the account public key returned by Mirror
-Node. Successful first login creates `User` and `Wallet` records and an opaque
-hashed session; it does not submit a Hedera transaction.
+message. A HIP-820 wallet signs the standard
+`\x19Hedera Signed Message:\n<length><message>` payload and returns a signature
+map. The frontend wallet adapter extracts its single raw signature, and
+`packages/hedera` verifies it against the account public key returned by Mirror
+Node. MetaMask uses `personal_sign`; the verifier recovers its EVM address and
+requires it to match the account's Mirror Node `evm_address`. For a completed
+ECDSA account, the current account key must match as well; hollow accounts
+legitimately have no key until completion. Both paths store the canonical
+`0.0.x` account ID. Successful first login creates `User` and `Wallet` records
+and an opaque hashed session; it does not submit a Hedera transaction.
 
-**MVP limitation:** direct ED25519/ECDSA account keys are supported. Threshold
-keys, key lists, and wallet-specific signature-map envelopes require an
-explicit adapter before they can be accepted.
+**MVP limitation:** MetaMask requires an ECDSA account present on Hedera testnet.
+Native direct ED25519/ECDSA keys are supported. Threshold keys and key lists
+require an explicit adapter before they can be accepted.
 
 ## Configuration
 
