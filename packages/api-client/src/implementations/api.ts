@@ -24,17 +24,6 @@ import type { WorldService } from "../services/world-service.js";
 
 export class ApiClientError extends Error {
   constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-  ) {
-    super(message);
-    this.name = "ApiClientError";
-  }
-}
-
-export class ApiClientError extends Error {
-  constructor(
     message: string,
     readonly status: number,
     readonly code?: string,
