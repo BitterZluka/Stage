@@ -17,9 +17,6 @@ export function Hero() {
 
       <div className="relative z-10 grid grid-cols-1 gap-10 p-6 sm:p-10 lg:grid-cols-2 lg:items-center lg:p-14">
         <div>
-          <Badge color="black" className="mb-5">
-            THE CREATOR COMMUNITY LAYER
-          </Badge>
           <h1 className="font-display mb-6 text-4xl leading-[1.1] font-bold sm:text-5xl lg:text-[56px]">
             Your community
             <span className="text-holo-gradient block">deserves a stage.</span>
@@ -31,20 +28,15 @@ export function Hero() {
         </div>
 
         <div className="flex items-center justify-center">
-          <SurfaceCard
-            accent="var(--color-stage-pink)"
-            className="animate-stage-float w-full max-w-sm rounded-[28px] p-3"
-          >
             <Image
-              src="/brand/stage-rabbit.jpg"
+              src="/brand/IMG_1538.png"
               alt="STAGE mascot: a hand-drawn black-and-white rabbit with one ear up, next to a speech bubble reading STAGE"
               width={1782}
               height={1231}
-              className="h-auto w-full rounded-2xl"
+              className="h-auto w-[700px] max-w-none scale-[1.35] -translate-x-7 rounded-2xl"
               priority
               sizes="(min-width: 1024px) 384px, 80vw"
             />
-          </SurfaceCard>
         </div>
       </div>
 
