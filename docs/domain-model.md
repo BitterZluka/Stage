@@ -7,7 +7,7 @@
 | Identity | `User`, `Wallet`, `LoginChallenge`, `Session`, `WorldIdentity`, `WorldProofReplay` | wallet ownership is proven by a one-time signature; first login creates the user and requires fan/creator onboarding; a World proof is not authentication |
 | Creators | `CreatorProfile`, `Membership` | only the owner/admin may change the profile; the handle is unique |
 | Creator Economy | `CreatorToken`, `TokenOperation` | one active token per creator; amounts are decimal strings |
-| Challenges | `Challenge`, `Submission`, `Review` | submission only within the window; reward after acceptance; one decision per version |
+| Challenges | `Challenge`, `Submission`, `Review` | submission only within the window and optional creator-token threshold; reward after acceptance; one decision per version |
 | Rewards | `RewardGrant` | unique by `(submissionId, recipientId, reason)` |
 | Perks | `Perk`, `PerkClaim` | World and Mirror token-gate eligibility is server-checked; one claim per user; claims do not exceed inventory |
 | Audit | `AuditEvent`, `OutboxMessage` | append-only; public HCS payload contains no PII |
@@ -24,6 +24,16 @@ Contexts communicate through IDs and events. Prisma relations do not give one mo
 - `WorldIdentity`: absent or verified; rejected/expired proof attempts are not persisted as identities.
 
 **Temporary MVP solution:** the creator performs the review; there is no moderation/admin override. Each user may make one submission per challenge, and editing after submission is prohibited.
+
+World Selfie Check is part of the login/onboarding flow, so creators do not
+configure it per challenge. A challenge may instead define a non-negative
+creator-token participation threshold. The API verifies the linked Hedera
+account and current Mirror Node balance before accepting a gated submission;
+tokens are held, not spent.
+
+Draft challenges may be hard-deleted by their creator before publication.
+Published and later lifecycle states remain durable for submissions and public
+audit history; creators cancel those challenges instead of deleting them.
 
 `FAN` and `CREATOR` are onboarding intents, not exclusive authorization roles.
 Every user may participate as a fan. Creator capabilities are granted by an

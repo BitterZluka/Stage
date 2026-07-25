@@ -16,7 +16,7 @@ import type {
 import {
   TOKEN_BALANCE_READER,
   type TokenBalanceReader,
-} from "./token-balance-reader.js";
+} from "../token-balances/token-balance-reader.js";
 
 function conflict(code: string, message: string): ConflictException {
   return new ConflictException({ error: { code, message } });

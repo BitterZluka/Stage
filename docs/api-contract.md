@@ -45,14 +45,16 @@ Chain column: `—` — none; `R` — Hedera/Mirror read; `W(outbox)` — write 
 | Tokens | `GET /creators/:creatorId/token` | — → `CreatorTokenView` | Public | `TOKEN_NOT_CREATED` | R optional | eventual read |
 | Tokens | `GET /operations/:operationId` | — → `OperationView` | User; actor/affected creator/admin | — | R during reconciliation | eventual read |
 | Challenges | `GET /challenges` | filters `creatorId,status,cursor` → page | Public | `FILTER_INVALID` | — | sync |
+| Challenges | `GET /challenges/mine` | filters `status,cursor,limit` → page including private states | Creator; owned profile from session | `CREATOR_INACTIVE` | — | sync |
 | Challenges | `POST /challenges` | `CreateChallengeDto` → `ChallengeView` | Creator; `creatorId` must be owned | `CREATOR_INACTIVE`, `REWARD_BUDGET_EXCEEDED` | — | sync |
 | Challenges | `GET /challenges/:challengeId` | — → `ChallengeView` | Public; published, judging, or completed | — | — | sync |
 | Challenges | `PATCH /challenges/:challengeId` | `UpdateChallengeDto` → view | Creator; only draft | `CHALLENGE_NOT_DRAFT`, `VERSION_CONFLICT` | — | sync |
-| Challenges | `POST /challenges/:challengeId/publish` | — → view | Creator | `CHALLENGE_NOT_PUBLISHABLE`, `REWARD_BUDGET_EXCEEDED` | HCS(outbox) | sync DB; audit eventual |
+| Challenges | `DELETE /challenges/:challengeId` | `{ expectedVersion }` → `204` | Creator owner; only draft | `CHALLENGE_NOT_DRAFT`, `VERSION_CONFLICT` | — | sync |
+| Challenges | `POST /challenges/:challengeId/publish` | — → view | Creator | `CHALLENGE_NOT_PUBLISHABLE`, `REWARD_BUDGET_EXCEEDED`, `CREATOR_TOKEN_NOT_ACTIVE` | HCS(outbox) | sync DB; audit eventual |
 | Challenges | `POST /challenges/:challengeId/close` | — → view | Creator | `INVALID_CHALLENGE_TRANSITION` | — | sync |
 | Challenges | `POST /challenges/:challengeId/complete` | — → view | Creator; all submissions decided | `SUBMISSIONS_PENDING` | — | sync |
 | Challenges | `POST /challenges/:challengeId/cancel` | — → view | Creator; non-terminal challenge | `INVALID_CHALLENGE_TRANSITION` | — | sync |
-| Submissions | `POST /challenges/:challengeId/submissions` | `CreateSubmissionDto` → `SubmissionView` | User; challenge open, one/user | `CHALLENGE_NOT_ACCEPTING_SUBMISSIONS`, `SUBMISSION_ALREADY_EXISTS` | — | sync |
+| Submissions | `POST /challenges/:challengeId/submissions` | `CreateSubmissionDto` → `SubmissionView` | User; challenge open, one/user; creator-token threshold checked when non-zero | `CHALLENGE_NOT_ACCEPTING_SUBMISSIONS`, `SUBMISSION_ALREADY_EXISTS`, `TOKEN_NOT_ASSOCIATED`, `TOKEN_BALANCE_INSUFFICIENT` | Mirror token-balance read when gated | sync |
 | Submissions | `GET /submissions/:submissionId` | — → view | author, challenge Creator, Admin | — | — | sync |
 | Submissions | `GET /challenges/:challengeId/submissions` | query `status,cursor` → page | Creator; own challenge | — | — | sync |
 | Submissions | `POST /submissions/:submissionId/decision` | `DecisionDto` → submission/payout | Creator; own challenge in judging | `SUBMISSION_ALREADY_DECIDED`, `WINNER_LIMIT_REACHED`, `WORLD_VERIFICATION_REQUIRED` | accepted: W(outbox)+HCS | sync reservation; payout eventual |
@@ -103,7 +105,7 @@ type CreateChallengeDto = {
   submissionDeadline: string;
   rewardAmount: string;    // server binds creator token
   maxWinners: number;      // 1 means a single-winner challenge
-  requiresWorldVerification: boolean;
+  participationTokenAmount: string; // non-negative; 0 means open participation
 };
 
 type CreateSubmissionDto = {

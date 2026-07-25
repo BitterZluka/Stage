@@ -159,6 +159,7 @@ model Challenge {
   verificationConfig        Json?
   startsAt                  DateTime
   submissionDeadline        DateTime
+  participationTokenAmount  String              @default("0")
   requiresWorldVerification Boolean             @default(true)
   version                   Int                 @default(1)
   createdAt                 DateTime            @default(now())

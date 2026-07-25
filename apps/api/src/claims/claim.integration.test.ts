@@ -4,7 +4,7 @@ import test from "node:test";
 import { DatabaseService } from "../database/database.service.js";
 import { PerkService } from "../perks/perk.service.js";
 import { ClaimService } from "./claim.service.js";
-import type { TokenBalanceReader } from "./token-balance-reader.js";
+import type { TokenBalanceReader } from "../token-balances/token-balance-reader.js";
 
 const runDatabaseTests = process.env.RUN_DATABASE_INTEGRATION_TESTS === "1";
 

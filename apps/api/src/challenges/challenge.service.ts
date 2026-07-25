@@ -10,6 +10,7 @@ import { DatabaseService } from "../database/database.service.js";
 import type {
   CreateChallengeDto,
   ListChallengesQuery,
+  ListOwnedChallengesQuery,
   UpdateChallengeDto,
 } from "./challenge.schemas.js";
 
@@ -101,6 +102,7 @@ export class ChallengeService {
     requiresWorldVerification: boolean;
     startsAt: Date;
     submissionDeadline: Date;
+    participationTokenAmount: string;
     version: number;
     createdAt: Date;
     updatedAt: Date;
@@ -116,6 +118,7 @@ export class ChallengeService {
       submissionKind: challenge.submissionKind.toLowerCase(),
       verificationMode: challenge.verificationMode.toLowerCase(),
       requiresWorldVerification: challenge.requiresWorldVerification,
+      participationTokenAmount: challenge.participationTokenAmount,
       rewardAmount: challenge.rewardRule?.amount ?? "0",
       maxWinners: challenge.rewardRule?.maxWinners ?? 0,
       winnerCount: challenge._count.reservations,
@@ -155,7 +158,8 @@ export class ChallengeService {
         verificationMode: "MANUAL",
         startsAt: new Date(input.startsAt),
         submissionDeadline: new Date(input.submissionDeadline),
-        requiresWorldVerification: input.requiresWorldVerification,
+        participationTokenAmount: input.participationTokenAmount,
+        requiresWorldVerification: true,
         rewardRule: {
           create: { amount: input.rewardAmount, maxWinners: input.maxWinners },
         },
@@ -220,8 +224,10 @@ export class ChallengeService {
             : {}),
           startsAt,
           submissionDeadline: deadline,
-          ...(input.requiresWorldVerification !== undefined
-            ? { requiresWorldVerification: input.requiresWorldVerification }
+          ...(input.participationTokenAmount !== undefined
+            ? {
+                participationTokenAmount: input.participationTokenAmount,
+              }
             : {}),
           version: { increment: 1 },
         },
@@ -248,7 +254,10 @@ export class ChallengeService {
     const published = await this.database.$transaction(async (transaction) => {
       const current = await transaction.challenge.findUnique({
         where: { id: challengeId },
-        include: this.challengeInclude(),
+        include: {
+          ...this.challengeInclude(),
+          creator: { include: { token: true } },
+        },
       });
       if (!current) throw new NotFoundException();
       await this.requireOwnedCreator(creatorId, current.creatorId);
@@ -269,6 +278,16 @@ export class ChallengeService {
         );
       }
       assertBudget(current.rewardRule.amount, current.rewardRule.maxWinners);
+      if (
+        BigInt(current.participationTokenAmount) > 0n &&
+        (!current.creator.token?.hederaTokenId ||
+          current.creator.token.status !== "ACTIVE")
+      ) {
+        throw conflict(
+          "CREATOR_TOKEN_NOT_ACTIVE",
+          "An active creator token is required for a token-gated challenge",
+        );
+      }
       const updateResult = await transaction.challenge.updateMany({
         where: {
           id: current.id,
@@ -356,6 +375,47 @@ export class ChallengeService {
     return this.toView(challenge);
   }
 
+  async deleteDraft(
+    challengeId: string,
+    creatorId: string | null,
+    expectedVersion: number,
+  ): Promise<void> {
+    await this.database.$transaction(async (transaction) => {
+      const current = await transaction.challenge.findUnique({
+        where: { id: challengeId },
+      });
+      if (!current) throw new NotFoundException();
+      await this.requireOwnedCreator(creatorId, current.creatorId);
+      if (current.status !== "DRAFT") {
+        throw conflict(
+          "CHALLENGE_NOT_DRAFT",
+          "Only draft challenges can be deleted",
+        );
+      }
+      if (current.version !== expectedVersion) {
+        throw conflict(
+          "VERSION_CONFLICT",
+          "The challenge was changed by another request",
+        );
+      }
+
+      await transaction.rewardRule.deleteMany({ where: { challengeId } });
+      const result = await transaction.challenge.deleteMany({
+        where: {
+          id: challengeId,
+          status: "DRAFT",
+          version: expectedVersion,
+        },
+      });
+      if (result.count !== 1) {
+        throw conflict(
+          "VERSION_CONFLICT",
+          "The challenge was changed by another request",
+        );
+      }
+    });
+  }
+
   async getPublic(challengeId: string) {
     const challenge = await this.database.challenge.findFirst({
       where: {
@@ -375,6 +435,42 @@ export class ChallengeService {
       where: {
         ...(query.creatorId ? { creatorId: query.creatorId } : {}),
         status: { in: [...statuses] },
+      },
+      include: this.challengeInclude(),
+      orderBy: { id: "asc" },
+      take: query.limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    });
+    const hasMore = rows.length > query.limit;
+    const items = hasMore ? rows.slice(0, query.limit) : rows;
+    return {
+      items: items.map((row) => this.toView(row)),
+      pageInfo: {
+        hasNextPage: hasMore,
+        nextCursor: hasMore ? items.at(-1)?.id : undefined,
+      },
+    };
+  }
+
+  async listOwned(creatorId: string | null, query: ListOwnedChallengesQuery) {
+    if (!creatorId) {
+      throw new ForbiddenException({
+        error: {
+          code: "CREATOR_OWNERSHIP_REQUIRED",
+          message: "A creator profile is required to manage challenges",
+        },
+      });
+    }
+    await this.requireOwnedCreator(creatorId, creatorId);
+    const rows = await this.database.challenge.findMany({
+      where: {
+        creatorId,
+        ...(query.status
+          ? {
+              status: query.status.toUpperCase() as
+                "DRAFT" | "PUBLISHED" | "JUDGING" | "COMPLETED" | "CANCELLED",
+            }
+          : {}),
       },
       include: this.challengeInclude(),
       orderBy: { id: "asc" },

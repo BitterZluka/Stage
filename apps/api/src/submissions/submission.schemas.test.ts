@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ManualChallengeVerifier } from "./challenge-verifier.js";
+import { meetsParticipationTokenRequirement } from "./submission.service.js";
 import {
   createSubmissionSchema,
   submissionDecisionSchema,
@@ -50,4 +51,10 @@ test("rejection requires a stable reason code", () => {
 test("manual verifier always routes evidence to creator review", async () => {
   const result = await new ManualChallengeVerifier().verify();
   assert.deepEqual(result, { outcome: "NEEDS_REVIEW" });
+});
+
+test("token-gated participation requires the configured minimum balance", () => {
+  assert.equal(meetsParticipationTokenRequirement("0", 0n), true);
+  assert.equal(meetsParticipationTokenRequirement("25", 25n), true);
+  assert.equal(meetsParticipationTokenRequirement("25", 24n), false);
 });

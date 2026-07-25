@@ -15,6 +15,11 @@ export interface ChallengeService {
       status?: Challenge["status"];
     },
   ): Promise<Page<Challenge>>;
+  listMyChallenges(
+    filters?: Partial<PageRequest> & {
+      status?: Challenge["status"];
+    },
+  ): Promise<Page<Challenge>>;
   getChallenge(challengeId: ChallengeId): Promise<Challenge | null>;
   createChallenge(input: CreateChallengeInput): Promise<Challenge>;
   updateChallenge(
@@ -25,4 +30,8 @@ export interface ChallengeService {
   closeChallenge(challengeId: ChallengeId): Promise<Challenge>;
   completeChallenge(challengeId: ChallengeId): Promise<Challenge>;
   cancelChallenge(challengeId: ChallengeId): Promise<Challenge>;
+  deleteChallenge(
+    challengeId: ChallengeId,
+    expectedVersion: number,
+  ): Promise<void>;
 }

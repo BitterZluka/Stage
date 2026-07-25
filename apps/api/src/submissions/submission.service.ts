@@ -4,9 +4,14 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
   UnprocessableEntityException,
 } from "@nestjs/common";
 import { DatabaseService } from "../database/database.service.js";
+import {
+  TOKEN_BALANCE_READER,
+  type TokenBalanceReader,
+} from "../token-balances/token-balance-reader.js";
 import {
   CHALLENGE_VERIFIER,
   type ChallengeVerifier,
@@ -39,6 +44,13 @@ function payoutStatus(
   return "pending";
 }
 
+export function meetsParticipationTokenRequirement(
+  requiredAmount: string,
+  balance: bigint,
+): boolean {
+  return balance >= BigInt(requiredAmount);
+}
+
 @Injectable()
 export class SubmissionService {
   constructor(
@@ -46,6 +58,8 @@ export class SubmissionService {
     private readonly database: DatabaseService,
     @Inject(CHALLENGE_VERIFIER)
     private readonly verifier: ChallengeVerifier,
+    @Inject(TOKEN_BALANCE_READER)
+    private readonly balances: TokenBalanceReader,
   ) {}
 
   private toView(submission: {
@@ -93,6 +107,7 @@ export class SubmissionService {
   ) {
     const challenge = await this.database.challenge.findUnique({
       where: { id: challengeId },
+      include: { creator: { include: { token: true } } },
     });
     if (!challenge) throw new NotFoundException();
     const now = new Date();
@@ -121,6 +136,68 @@ export class SubmissionService {
           message: "This challenge requires a public evidence URL",
         },
       });
+    }
+    if (BigInt(challenge.participationTokenAmount) > 0n) {
+      const token = challenge.creator.token;
+      if (!token?.hederaTokenId || token.status !== "ACTIVE") {
+        throw new UnprocessableEntityException({
+          error: {
+            code: "CREATOR_TOKEN_NOT_ACTIVE",
+            message: "The creator token is not active",
+          },
+        });
+      }
+      const wallets = await this.database.wallet.findMany({
+        where: { userId: authorUserId },
+        orderBy: { verifiedAt: "desc" },
+        select: { accountId: true },
+      });
+      const accountId = wallets.find((wallet) =>
+        /^0\.0\.\d+$/.test(wallet.accountId),
+      )?.accountId;
+      if (!accountId) {
+        throw new ForbiddenException({
+          error: {
+            code: "HEDERA_WALLET_REQUIRED",
+            message:
+              "A linked Hedera account is required for this token-gated challenge",
+          },
+        });
+      }
+      let balance: Awaited<ReturnType<TokenBalanceReader["getTokenBalance"]>>;
+      try {
+        balance = await this.balances.getTokenBalance(
+          accountId,
+          token.hederaTokenId,
+        );
+      } catch {
+        throw new ServiceUnavailableException({
+          error: {
+            code: "MIRROR_NODE_UNAVAILABLE",
+            message: "Token eligibility could not be checked",
+          },
+        });
+      }
+      if (!balance.associated) {
+        throw conflict(
+          "TOKEN_NOT_ASSOCIATED",
+          "Associate the creator token with your Hedera account first",
+        );
+      }
+      if (
+        !meetsParticipationTokenRequirement(
+          challenge.participationTokenAmount,
+          balance.balance,
+        )
+      ) {
+        throw new ForbiddenException({
+          error: {
+            code: "TOKEN_BALANCE_INSUFFICIENT",
+            message:
+              "Your linked account does not meet this challenge's token requirement",
+          },
+        });
+      }
     }
     const verification = await this.verifier.verify({
       submissionKind: challenge.submissionKind,

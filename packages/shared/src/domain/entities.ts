@@ -51,6 +51,7 @@ export interface Challenge extends EntityTimestamps {
   submissionKind: SubmissionKind;
   verificationMode: VerificationMode;
   requiresWorldVerification: boolean;
+  participationTokenAmount: TokenAmount;
   rewardAmount: TokenAmount;
   maxWinners: number;
   winnerCount: number;

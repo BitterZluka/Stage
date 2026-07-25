@@ -16,6 +16,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: process.env.WEB_ORIGIN ?? "http://localhost:3000",
     credentials: true,
+    methods: ["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
   });
   app.setGlobalPrefix("api/v1");
   await app.listen(Number(process.env.API_PORT ?? 4000), "0.0.0.0");

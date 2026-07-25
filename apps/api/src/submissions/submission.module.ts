@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module.js";
 import { DatabaseService } from "../database/database.service.js";
+import { TokenBalanceModule } from "../token-balances/token-balance.module.js";
 import {
   CHALLENGE_VERIFIER,
   ManualChallengeVerifier,
@@ -9,7 +10,7 @@ import { SubmissionController } from "./submission.controller.js";
 import { SubmissionService } from "./submission.service.js";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, TokenBalanceModule],
   controllers: [SubmissionController],
   providers: [
     DatabaseService,

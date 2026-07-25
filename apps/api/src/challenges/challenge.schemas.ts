@@ -3,6 +3,12 @@ import { z } from "zod";
 const tokenAmount = z
   .string()
   .regex(/^[1-9]\d*$/, "Reward amount must be a positive integer");
+const participationTokenAmount = z
+  .string()
+  .regex(
+    /^(0|[1-9]\d*)$/,
+    "Participation token amount must be a non-negative integer",
+  );
 const isoTimestamp = z.iso.datetime({ offset: true });
 
 export const challengeIdSchema = z.uuid();
@@ -18,7 +24,7 @@ export const createChallengeSchema = z
     submissionDeadline: isoTimestamp,
     rewardAmount: tokenAmount,
     maxWinners: z.number().int().min(1).max(1_000),
-    requiresWorldVerification: z.boolean().default(true),
+    participationTokenAmount: participationTokenAmount.default("0"),
   })
   .superRefine((value, context) => {
     if (new Date(value.startsAt) >= new Date(value.submissionDeadline)) {
@@ -38,7 +44,7 @@ export const updateChallengeSchema = z
     submissionDeadline: isoTimestamp.optional(),
     rewardAmount: tokenAmount.optional(),
     maxWinners: z.number().int().min(1).max(1_000).optional(),
-    requiresWorldVerification: z.boolean().optional(),
+    participationTokenAmount: participationTokenAmount.optional(),
     expectedVersion: z.number().int().positive(),
   })
   .refine(
@@ -53,6 +59,22 @@ export const listChallengesSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+export const listOwnedChallengesSchema = z.object({
+  status: z
+    .enum(["draft", "published", "judging", "completed", "cancelled"])
+    .optional(),
+  cursor: z.uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const deleteChallengeSchema = z.object({
+  expectedVersion: z.number().int().positive(),
+});
+
 export type CreateChallengeDto = z.infer<typeof createChallengeSchema>;
 export type UpdateChallengeDto = z.infer<typeof updateChallengeSchema>;
 export type ListChallengesQuery = z.infer<typeof listChallengesSchema>;
+export type ListOwnedChallengesQuery = z.infer<
+  typeof listOwnedChallengesSchema
+>;
+export type DeleteChallengeDto = z.infer<typeof deleteChallengeSchema>;

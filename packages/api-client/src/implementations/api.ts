@@ -153,6 +153,19 @@ export class ApiChallengeService
     return this.request(`/challenges${suffix}`);
   }
 
+  listMyChallenges(
+    filters?: Partial<PageRequest> & {
+      status?: Challenge["status"];
+    },
+  ): Promise<Page<Challenge>> {
+    const query = new URLSearchParams();
+    if (filters?.status) query.set("status", filters.status);
+    if (filters?.cursor) query.set("cursor", filters.cursor);
+    if (filters?.limit) query.set("limit", String(filters.limit));
+    const suffix = query.size ? `?${query}` : "";
+    return this.request(`/challenges/mine${suffix}`);
+  }
+
   async getChallenge(id: ChallengeId): Promise<Challenge | null> {
     try {
       return await this.request(`/challenges/${id}`);
@@ -193,6 +206,13 @@ export class ApiChallengeService
 
   cancelChallenge(id: ChallengeId): Promise<Challenge> {
     return this.request(`/challenges/${id}/cancel`, { method: "POST" });
+  }
+
+  deleteChallenge(id: ChallengeId, expectedVersion: number): Promise<void> {
+    return this.request(`/challenges/${id}`, {
+      method: "DELETE",
+      body: JSON.stringify({ expectedVersion }),
+    });
   }
 }
 

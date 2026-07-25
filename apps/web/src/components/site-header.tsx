@@ -57,6 +57,9 @@ export function SiteHeader() {
   }
 
   const accountId = session?.user.accountIds[0];
+  const navLinks = session?.user.creatorId
+    ? [...NAV_LINKS, { href: "/studio/challenges", label: "Studio" }]
+    : NAV_LINKS;
   const authLabel = loading
     ? "Checking…"
     : accountId
@@ -86,11 +89,17 @@ export function SiteHeader() {
           aria-label="Primary"
           className="hidden flex-1 items-center justify-center gap-1 md:flex"
         >
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              aria-current={pathname === link.href ? "page" : undefined}
+              aria-current={
+                pathname === link.href ||
+                (link.href.startsWith("/studio") &&
+                  pathname.startsWith("/studio"))
+                  ? "page"
+                  : undefined
+              }
               className="rounded-xl border-2 border-transparent px-4 py-2 text-sm font-bold transition-colors hover:border-black hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black aria-[current=page]:border-black aria-[current=page]:bg-black aria-[current=page]:text-white"
             >
               {link.label}
@@ -180,7 +189,7 @@ export function SiteHeader() {
             aria-label="Primary"
             className="flex flex-1 flex-col gap-2 overflow-y-auto p-4"
           >
-            {NAV_LINKS.map((link, index) => (
+            {navLinks.map((link, index) => (
               <Link
                 key={link.href}
                 ref={index === 0 ? firstMobileLinkRef : undefined}

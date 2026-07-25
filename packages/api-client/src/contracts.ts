@@ -81,7 +81,7 @@ export interface CreateChallengeInput {
   rewardAmount: TokenAmount;
   maxWinners: number;
   submissionDeadline: IsoTimestamp;
-  requiresWorldVerification: boolean;
+  participationTokenAmount: TokenAmount;
 }
 
 export interface CreateSubmissionInput {
@@ -97,7 +97,7 @@ export interface UpdateChallengeInput {
   submissionDeadline?: IsoTimestamp;
   rewardAmount?: TokenAmount;
   maxWinners?: number;
-  requiresWorldVerification?: boolean;
+  participationTokenAmount?: TokenAmount;
   expectedVersion: number;
 }
 

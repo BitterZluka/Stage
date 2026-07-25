@@ -2,7 +2,9 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Inject,
   NotFoundException,
   Param,
@@ -18,7 +20,9 @@ import { AuthService } from "../auth/auth.service.js";
 import {
   challengeIdSchema,
   createChallengeSchema,
+  deleteChallengeSchema,
   listChallengesSchema,
+  listOwnedChallengesSchema,
   updateChallengeSchema,
 } from "./challenge.schemas.js";
 import { ChallengeService } from "./challenge.service.js";
@@ -51,6 +55,15 @@ export class ChallengeController {
     return this.challenges.listPublic(parse(listChallengesSchema, query));
   }
 
+  @Get("mine")
+  async listMine(@Query() query: unknown, @Req() request: FastifyRequest) {
+    const session = await requireSession(this.auth, request);
+    return this.challenges.listOwned(
+      session.user.creatorId,
+      parse(listOwnedChallengesSchema, query),
+    );
+  }
+
   @Get(":challengeId")
   async get(@Param("challengeId") challengeId: string) {
     const challenge = await this.challenges.getPublic(
@@ -80,6 +93,22 @@ export class ChallengeController {
       parse(challengeIdSchema, challengeId),
       session.user.creatorId,
       parse(updateChallengeSchema, body),
+    );
+  }
+
+  @Delete(":challengeId")
+  @HttpCode(204)
+  async delete(
+    @Param("challengeId") challengeId: string,
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const session = await requireSession(this.auth, request);
+    const input = parse(deleteChallengeSchema, body);
+    await this.challenges.deleteDraft(
+      parse(challengeIdSchema, challengeId),
+      session.user.creatorId,
+      input.expectedVersion,
     );
   }
 

@@ -62,6 +62,19 @@ export class MockChallengeService implements ChallengeService {
     );
   }
 
+  async listMyChallenges(
+    filters?: Partial<PageRequest> & {
+      status?: Challenge["status"];
+    },
+  ): Promise<Page<Challenge>> {
+    return pageOf(
+      this.challenges.filter(
+        (item) => !filters?.status || item.status === filters.status,
+      ),
+      filters,
+    );
+  }
+
   async getChallenge(id: ChallengeId): Promise<Challenge | null> {
     return this.challenges.find((item) => item.id === id) ?? null;
   }
@@ -96,6 +109,22 @@ export class MockChallengeService implements ChallengeService {
 
   async cancelChallenge(id: ChallengeId): Promise<Challenge> {
     return this.withStatus(id, ChallengeStatus.Cancelled);
+  }
+
+  async deleteChallenge(
+    id: ChallengeId,
+    expectedVersion: number,
+  ): Promise<void> {
+    const index = this.challenges.findIndex((item) => item.id === id);
+    const challenge = this.challenges[index];
+    if (!challenge) throw new Error("Challenge not found");
+    if (challenge.status !== ChallengeStatus.Draft) {
+      throw new Error("Only draft challenges can be deleted");
+    }
+    if (challenge.version !== expectedVersion) {
+      throw new Error("Challenge version conflict");
+    }
+    this.challenges.splice(index, 1);
   }
 
   private async withStatus(

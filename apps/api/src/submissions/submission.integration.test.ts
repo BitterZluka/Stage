@@ -17,6 +17,9 @@ test(
     const submissions = new SubmissionService(
       database,
       new ManualChallengeVerifier(),
+      {
+        getTokenBalance: async () => ({ balance: 0n, associated: false }),
+      },
     );
     const suffix = randomUUID().slice(0, 8);
     const userIds: string[] = [];
@@ -48,7 +51,7 @@ test(
         submissionDeadline: new Date(Date.now() + 3_600_000).toISOString(),
         rewardAmount: "100",
         maxWinners: 1,
-        requiresWorldVerification: false,
+        participationTokenAmount: "0",
       });
       challengeId = challenge.id;
       await assert.rejects(() =>
