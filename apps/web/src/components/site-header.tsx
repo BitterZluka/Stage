@@ -1,27 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import type { FormEvent } from "react";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../auth/auth-provider";
-import { CloseIcon, MenuIcon, SearchIcon } from "./icons";
+import { CloseIcon, MenuIcon } from "./icons";
 import { LoginModal } from "./login-modal";
 import { Button } from "./ui/button";
 
 const NAV_LINKS = [
-  { href: "/explore", label: "Explore" },
   { href: "/challenges", label: "Challenges" },
   { href: "/creators", label: "Creators" },
-  { href: "/perks", label: "Perks" },
 ];
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const router = useRouter();
   const { session, loading, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const firstMobileLinkRef = useRef<HTMLAnchorElement>(null);
@@ -40,13 +35,6 @@ export function SiteHeader() {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [mobileOpen]);
-
-  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSearchOpen(false);
-    setMobileOpen(false);
-    router.push("/explore");
-  }
 
   function handleAuthAction() {
     if (session) {
@@ -108,36 +96,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
-          <div className="hidden items-center sm:flex">
-            {searchOpen ? (
-              <form
-                onSubmit={handleSearchSubmit}
-                className="flex items-center gap-2"
-              >
-                <label htmlFor="site-search" className="sr-only">
-                  Search STAGE
-                </label>
-                <input
-                  id="site-search"
-                  type="search"
-                  autoFocus
-                  placeholder="Search challenges, creators..."
-                  className="w-56 rounded-xl border-2 border-black px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
-                  onBlur={() => setSearchOpen(false)}
-                />
-              </form>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setSearchOpen(true)}
-                aria-label="Search STAGE"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-black transition-colors hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
-              >
-                <SearchIcon size={16} />
-              </button>
-            )}
-          </div>
-
           <Button
             variant="primary"
             size="sm"
@@ -200,18 +158,6 @@ export function SiteHeader() {
                 {link.label}
               </Link>
             ))}
-
-            <form onSubmit={handleSearchSubmit} className="mt-2">
-              <label htmlFor="mobile-search" className="sr-only">
-                Search STAGE
-              </label>
-              <input
-                id="mobile-search"
-                type="search"
-                placeholder="Search challenges, creators..."
-                className="w-full rounded-xl border-2 border-black px-4 py-4 text-base placeholder:text-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
-              />
-            </form>
 
             <Button
               variant="primary"
