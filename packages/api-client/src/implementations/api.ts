@@ -12,11 +12,26 @@ import type {
   PageRequest,
   RewardPayout,
   SubmissionId,
+  WorldProofInput,
+  WorldRpContextView,
+  WorldVerificationView,
 } from "../contracts.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { ChallengeService } from "../services/challenge-service.js";
 import type { CreatorService } from "../services/creator-service.js";
 import type { RewardService } from "../services/reward-service.js";
+import type { WorldService } from "../services/world-service.js";
+
+export class ApiClientError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ApiClientError";
+  }
+}
 
 export class ApiClientError extends Error {
   constructor(
@@ -59,7 +74,7 @@ abstract class ApiServiceContract {
       } | null;
       throw new ApiClientError(
         body?.error?.message ??
-          `API request failed with status ${response.status}`,
+        `API request failed with status ${response.status}`,
         response.status,
         body?.error?.code,
       );
@@ -110,8 +125,7 @@ export class ApiAuthService extends ApiServiceContract implements AuthService {
 
 export class ApiChallengeService
   extends ApiServiceContract
-  implements ChallengeService
-{
+  implements ChallengeService {
   listChallenges(
     _filters?: Partial<PageRequest> & {
       creatorId?: CreatorId;
@@ -140,8 +154,7 @@ export class ApiChallengeService
 
 export class ApiCreatorService
   extends ApiServiceContract
-  implements CreatorService
-{
+  implements CreatorService {
   listCreators(_page?: Partial<PageRequest>): Promise<Page<Creator>> {
     void _page;
     return this.notImplemented();
@@ -169,8 +182,7 @@ export class ApiCreatorService
 
 export class ApiRewardService
   extends ApiServiceContract
-  implements RewardService
-{
+  implements RewardService {
   selectWinner(
     _submissionId: SubmissionId,
     _options: MutationOptions,
@@ -183,5 +195,31 @@ export class ApiRewardService
   getPayout(_submissionId: SubmissionId): Promise<RewardPayout | null> {
     void _submissionId;
     return this.notImplemented();
+  }
+}
+
+export class ApiWorldService
+  extends ApiServiceContract
+  implements WorldService {
+  requestVerification(
+    input: {
+      hederaAccountId?: string;
+    } = {},
+  ): Promise<WorldRpContextView> {
+    return this.request("/world/rp-context", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  completeVerification(input: WorldProofInput): Promise<WorldVerificationView> {
+    return this.request("/world/verify", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  getVerification(): Promise<WorldVerificationView> {
+    return this.request("/world/status");
   }
 }

@@ -1,12 +1,13 @@
-import type { WorldProofInput, WorldVerificationView } from "../contracts.js";
+import type {
+  WorldProofInput,
+  WorldRpContextView,
+  WorldVerificationView,
+} from "../contracts.js";
 
 export interface WorldService {
-  requestVerification(action: string): Promise<{
-    verificationId: string;
-    action: string;
-    signal: string;
-    expiresAt: string;
-  }>;
+  requestVerification(input?: {
+    hederaAccountId?: string;
+  }): Promise<WorldRpContextView>;
   completeVerification(proof: WorldProofInput): Promise<WorldVerificationView>;
   getVerification(): Promise<WorldVerificationView>;
 }

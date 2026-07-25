@@ -9,12 +9,13 @@
     "start": "node dist/main.js",
     "lint": "eslint src --max-warnings=0",
     "typecheck": "tsc -b --pretty false",
-    "test": "tsx --test src/auth/auth.crypto.test.ts"
+    "test": "node --import tsx --test src/auth/*.test.ts src/world/*.test.ts"
   },
   "dependencies": {
     "@creator-platform/database": "workspace:*",
     "@creator-platform/hedera": "workspace:*",
     "@creator-platform/shared": "workspace:*",
+    "@stage/world": "workspace:*",
     "@fastify/cookie": "^11.1.2",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",

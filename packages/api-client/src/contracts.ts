@@ -18,6 +18,10 @@ import type {
   TokenAmount,
   UserId,
 } from "@creator-platform/shared";
+import type {
+  WorldRpContextResponse,
+  WorldVerificationStatus,
+} from "@stage/world/shared";
 
 export type {
   Challenge,
@@ -74,16 +78,12 @@ export interface MutationOptions {
 }
 
 export interface WorldProofInput {
-  verificationId: string;
-  action: string;
-  signal: string;
   proof: unknown;
+  hederaAccountId?: string;
 }
 
-export interface WorldVerificationView {
-  verified: boolean;
-  verifiedAt?: IsoTimestamp;
-}
+export type WorldRpContextView = WorldRpContextResponse;
+export type WorldVerificationView = WorldVerificationStatus;
 
 // TODO: Generate transport DTOs from OpenAPI once controllers exist.
 // OPEN QUESTION: Decide whether Page<T> uses a single opaque cursor or per-filter cursors.

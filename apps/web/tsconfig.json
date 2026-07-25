@@ -19,6 +19,7 @@
   "references": [
     { "path": "../../packages/shared" },
     { "path": "../../packages/api-client" },
+    { "path": "../../packages/world" },
     { "path": "../../packages/ui" }
   ]
 }

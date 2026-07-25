@@ -1,0 +1,36 @@
+{
+  "name": "@stage/world",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./shared": {
+      "types": "./dist/shared/index.d.ts",
+      "import": "./dist/shared/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "lint": "eslint src test --max-warnings=0",
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.test.json --pretty false",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@noble/hashes": "1.8.0",
+    "@worldcoin/idkit-core": "4.2.2",
+    "@worldcoin/idkit-server": "1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.23.1"
+  }
+}

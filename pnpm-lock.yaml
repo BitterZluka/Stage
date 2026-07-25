@@ -53,6 +53,9 @@ importers:
       '@nestjs/swagger':
         specifier: ^11.4.6
         version: 11.4.6(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)
+      '@stage/world':
+        specifier: workspace:*
+        version: link:../../packages/world
       bullmq:
         specifier: ^5.81.2
         version: 5.81.2
@@ -96,6 +99,9 @@ importers:
       '@hiero-ledger/sdk':
         specifier: ^2.79.0
         version: 2.79.0(bn.js@5.2.5)(react-native@0.86.0(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.8))
+      '@stage/world':
+        specifier: workspace:*
+        version: link:../../packages/world
       '@tanstack/react-query':
         specifier: ^5.101.4
         version: 5.101.4(react@19.2.8)
@@ -167,6 +173,9 @@ importers:
       '@creator-platform/shared':
         specifier: workspace:*
         version: link:../shared
+      '@stage/world':
+        specifier: workspace:*
+        version: link:../world
 
   packages/database:
     dependencies:
@@ -206,6 +215,25 @@ importers:
   packages/shared: {}
 
   packages/ui: {}
+
+  packages/world:
+    dependencies:
+      '@noble/hashes':
+        specifier: 1.8.0
+        version: 1.8.0
+      '@worldcoin/idkit-core':
+        specifier: 4.2.2
+        version: 4.2.2
+      '@worldcoin/idkit-server':
+        specifier: 1.1.1
+        version: 1.1.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      tsx:
+        specifier: ^4.23.1
+        version: 4.23.1
 
 packages:
 

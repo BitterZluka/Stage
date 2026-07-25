@@ -11,10 +11,15 @@ import type {
   PageRequest,
   RewardPayout,
   SubmissionId,
+  WorldProofInput,
+  WorldRpContextView,
+  WorldVerificationView,
 } from "../contracts.js";
 import type { ChallengeService } from "../services/challenge-service.js";
 import type { CreatorService } from "../services/creator-service.js";
 import type { RewardService } from "../services/reward-service.js";
+import type { WorldService } from "../services/world-service.js";
+import { STAGE_SELFIE_ENROLMENT_ACTION } from "@stage/world/shared";
 
 const pageOf = <T>(items: T[], page?: Partial<PageRequest>): Page<T> => ({
   items: items.slice(0, page?.limit ?? 20),
@@ -97,5 +102,46 @@ export class MockRewardService implements RewardService {
     return (
       this.payouts.find((item) => item.submissionId === submissionId) ?? null
     );
+  }
+}
+
+export class MockWorldService implements WorldService {
+  private status: WorldVerificationView = {
+    verified: false,
+    provider: "fake",
+  };
+
+  async requestVerification(): Promise<WorldRpContextView> {
+    return {
+      appId: "app_fake_stage",
+      action: STAGE_SELFIE_ENROLMENT_ACTION,
+      signal: `stage:v1:${"0".repeat(64)}`,
+      environment: "staging",
+      provider: "fake",
+      rpContext: {
+        rp_id: "rp_fake_stage",
+        nonce: "mock-nonce",
+        created_at: 1,
+        expires_at: 301,
+        signature: "mock-signature",
+      },
+    };
+  }
+
+  async completeVerification(
+    _proof: WorldProofInput,
+  ): Promise<WorldVerificationView> {
+    void _proof;
+    this.status = {
+      verified: true,
+      credentialType: "selfie_check",
+      verifiedAt: "2026-07-25T12:00:00.000Z",
+      provider: "fake",
+    };
+    return this.status;
+  }
+
+  async getVerification(): Promise<WorldVerificationView> {
+    return this.status;
   }
 }

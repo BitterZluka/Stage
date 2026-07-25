@@ -22,6 +22,7 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@creator-platform/shared": "workspace:*"
+    "@creator-platform/shared": "workspace:*",
+    "@stage/world": "workspace:*"
   }
 }

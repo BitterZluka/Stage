@@ -57,11 +57,14 @@ Ports are defined in `packages/shared/src/providers` and implemented only at the
 Allowed:
 
 ```text
- apps/web    -> packages/shared, packages/ui, packages/api-client
- apps/api    -> packages/shared, packages/database, packages/hedera
- apps/worker -> packages/shared, packages/database, packages/hedera
- packages/api-client, packages/database, packages/hedera -> packages/shared
- packages/hedera -> @hashgraph/sdk
+apps/web    -> packages/shared, packages/ui, packages/api-client
+apps/web    -> packages/world/client, packages/world/shared
+apps/api    -> packages/shared, packages/database, packages/hedera, packages/world/server
+apps/worker -> packages/shared, packages/database, packages/hedera
+packages/api-client -> packages/shared, packages/world/shared
+packages/database, packages/hedera -> packages/shared
+packages/hedera -> @hashgraph/sdk
+packages/world -> IDKit Core/Server and browser-safe hashing only
 ```
 
 Prohibited:
@@ -124,7 +127,7 @@ Later, outside the MVP:
 ```text
 apps/admin                 # manual retry/DLQ and moderation UI
 packages/observability     # shared traces/metrics
-packages/world             # if the integration outgrows the API adapter
+packages/world             # isolated client/shared/server World IDKit adapter
 services/indexer           # only if Mirror reads become a bottleneck
 infra                      # production IaC after platform selection
 ```

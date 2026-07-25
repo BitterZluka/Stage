@@ -5,6 +5,7 @@
     { "path": "./packages/api-client" },
     { "path": "./packages/database" },
     { "path": "./packages/hedera" },
+    { "path": "./packages/world" },
     { "path": "./packages/ui" },
     { "path": "./apps/web" },
     { "path": "./apps/api" },

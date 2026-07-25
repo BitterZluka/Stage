@@ -12,6 +12,7 @@
   "references": [
     { "path": "../../packages/shared" },
     { "path": "../../packages/database" },
-    { "path": "../../packages/hedera" }
+    { "path": "../../packages/hedera" },
+    { "path": "../../packages/world" }
   ]
 }

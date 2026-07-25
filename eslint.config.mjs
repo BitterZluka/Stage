@@ -42,6 +42,7 @@ export default tseslint.config(
                 "@creator-platform/database/**",
                 "@creator-platform/hedera",
                 "@creator-platform/hedera/**",
+                "@stage/world/server",
                 "@hashgraph/sdk",
               ],
               message:
@@ -102,6 +103,29 @@ export default tseslint.config(
               ],
               message:
                 "The browser API client cannot depend on server adapters.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["packages/world/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@creator-platform/*",
+                "@nestjs/**",
+                "@prisma/**",
+                "apps/**",
+                "../../apps/**",
+              ],
+              message:
+                "The World adapter is reusable and cannot depend on Stage applications or persistence.",
             },
           ],
         },

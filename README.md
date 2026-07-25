@@ -17,6 +17,7 @@ pnpm dev
 - Architecture and ownership: [`docs/architecture.md`](docs/architecture.md)
 - API map: [`docs/api-contract.md`](docs/api-contract.md)
 - Hedera boundary: [`docs/hedera-integration.md`](docs/hedera-integration.md)
+- World Selfie Check: [`docs/world-integration.md`](docs/world-integration.md)
 
 Copy `.env.example` to `.env` and replace placeholders locally. Never expose
 operator, treasury, World, or session secrets through `NEXT_PUBLIC_*`.

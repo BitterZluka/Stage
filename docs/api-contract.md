@@ -56,10 +56,9 @@ Chain column: `—` — none; `R` — Hedera/Mirror read; `W(outbox)` — write 
 | Submissions | `POST /submissions/:submissionId/decision` | `DecisionDto` → view/operation | Creator; own challenge | `ALREADY_REVIEWED`, `TREASURY_UNAVAILABLE` | accepted: W(outbox)+HCS | accepted 202; rejected sync |
 | Rewards | `GET /rewards` | query `cursor` → page `RewardView` | User; own rewards | — | R optional | eventual read |
 | Rewards | `GET /rewards/:rewardId` | — → `RewardView` | recipient, Creator, Admin | — | R during reconciliation | eventual read |
-| World | `POST /world/verification/request` | `{ action }` → `{ verificationId, action, signal, expiresAt }` | User; self | `ALREADY_VERIFIED` | — | sync |
-| World | `POST /world/verification/complete` | `WorldProofDto` → `WorldVerificationView` | User; signal bound to self | `PROOF_INVALID`, `PROOF_REPLAYED`, `ACTION_MISMATCH` | — | sync |
-| World | `POST /world/callback` | provider payload → `204` | WorldCallback; exact verification | `CALLBACK_INVALID`, `CALLBACK_REPLAYED` | — | sync/idempotent |
-| World | `GET /world/verification` | — → view | User; self | — | — | sync |
+| World | `POST /world/rp-context` | `{ hederaAccountId? }` → public IDKit config + RP context | User; linked wallet | `WALLET_REQUIRED`, `CONFIGURATION_ERROR` | — | sync |
+| World | `POST /world/verify` | `{ proof, hederaAccountId? }` → `WorldVerificationView` | User; action/signal rebuilt by backend | `PROOF_INVALID`, `PROOF_REPLAYED`, `ACTION_MISMATCH`, `SIGNAL_MISMATCH` | — | sync/idempotent |
+| World | `GET /world/status` | — → view | User; self | — | — | sync |
 | Perks | `GET /creators/:creatorId/perks` | query `cursor` → page | Public | — | — | sync |
 | Perks | `POST /creators/:creatorId/perks` | `CreatePerkDto` → `PerkView` | Creator | `THRESHOLD_INVALID`, `INVENTORY_INVALID` | HCS(outbox) | sync DB; audit eventual |
 | Perks | `PATCH /perks/:perkId` | `UpdatePerkDto` → view | Creator; unclaimed constraints | `PERK_LOCKED`, `VERSION_CONFLICT` | — | sync |
@@ -105,10 +104,8 @@ type DecisionDto =
   | { decision: "REJECT"; reasonCode: string; note?: string; expectedVersion: number };
 
 type WorldProofDto = {
-  verificationId: string;
-  action: string;
-  signal: string;
-  proof: unknown;          // provider shape validated by adapter
+  proof: unknown;          // forwarded unchanged to the server adapter
+  hederaAccountId?: string;
 };
 
 type CreatePerkDto = {

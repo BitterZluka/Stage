@@ -4,7 +4,7 @@
 
 | Bounded context | Aggregates / entities | Invariants |
 |---|---|---|
-| Identity | `User`, `Wallet`, `LoginChallenge`, `Session`, `WorldVerification` | wallet ownership is proven by a one-time signature; first login creates the user; a World proof is not authentication |
+| Identity | `User`, `Wallet`, `LoginChallenge`, `Session`, `WorldIdentity`, `WorldProofReplay` | wallet ownership is proven by a one-time signature; first login creates the user; a World proof is not authentication |
 | Creators | `CreatorProfile`, `Membership` | only the owner/admin may change the profile; the handle is unique |
 | Creator Economy | `CreatorToken`, `TokenOperation` | one active token per creator; amounts are decimal strings |
 | Challenges | `Challenge`, `Submission`, `Review` | submission only within the window; reward after acceptance; one decision per version |
@@ -20,7 +20,7 @@ Contexts communicate through IDs and events. Prisma relations do not give one mo
 - `Challenge`: `DRAFT -> PUBLISHED -> CLOSED -> ARCHIVED`.
 - `Submission`: `DRAFT -> SUBMITTED -> ACCEPTED | REJECTED`; an accepted submission may transition to `REWARD_PENDING -> REWARDED | REWARD_FAILED`.
 - `PerkClaim`: `PENDING -> ELIGIBLE -> FULFILLING -> FULFILLED`, or `REJECTED/FAILED/CANCELLED`.
-- `WorldVerification`: `PENDING -> VERIFIED | REJECTED | EXPIRED`.
+- `WorldIdentity`: absent or verified; rejected/expired proof attempts are not persisted as identities.
 
 **Temporary MVP solution:** the creator performs the review; there is no moderation/admin override. Each user may make one submission per challenge, and editing after submission is prohibited.
 
@@ -130,8 +130,8 @@ Each item requires an ADR before production. `Blocking` indicates which stage is
 | Frontend: where does token/NFT association occur? | requires a user signature and affects payout failures | Frontend + Hedera | reward/claim UX | wallet flow in web before the eligibility action | auto-association depends on wallet/account limits |
 | Backend: are a separate worker and Redis required? | async writes cannot be performed safely in the request | Backend | blockchain writes | separate worker + Redis/BullMQ from the first stage | an in-process queue is simpler but loses durability |
 | Hedera: which events actually go to HCS? | visibility, privacy, and cost | Product + Security + Hedera | demo audit | token/challenge/winner/reward/claim lifecycle allowlist | publishing less is safer; batch anchors are cheaper |
-| World: exact action/signal binding? | replay and cross-user proof | World + Security | integration | action=`stage-human`, signal=`userId` hash | per-challenge action is stricter but complicates UX |
-| World: store the nullifier? | uniqueness versus privacy | World + Security | integration | salted hash + action only | raw data simplifies deduplication but is more sensitive |
+| World: exact action/signal binding? | replay and cross-user proof | World + Security | integration | action=`stage-selfie-enrolment-v1`, signal=`stage:v1:sha256(canonical userId + Hedera accountId)` | per-challenge actions are stricter but complicate enrolment and migrations |
+| World: store the nullifier? | uniqueness versus privacy | World + Security | integration | store the verifier-confirmed RP/action-scoped replay key with an action composite unique constraint | hashing it again reduces direct comparability but complicates verifier replay reconciliation |
 | Security: public audit alias rotation? | activity correlation | Security | production | random alias per event | a stable alias is easier to verify but enables deanonymization |
 | Deployment: hosting/regions/secrets? | latency, compliance, operations | DevOps + Security | production | one region, managed Postgres/Redis, platform secrets | multi-region is more reliable but complicates consistency |
 | Deployment: recovery objectives? | backup/DLQ/runbook | Backend + DevOps | production | daily backup; manual DLQ replay | tighter RPO/RTO requires PITR, alerting, and rehearsal |
