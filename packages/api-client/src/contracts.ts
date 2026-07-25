@@ -1,0 +1,85 @@
+import type {
+  Challenge,
+  ChallengeId,
+  Claim,
+  ClaimId,
+  Creator,
+  CreatorId,
+  IdempotencyKey,
+  IsoTimestamp,
+  Page,
+  PageRequest,
+  Perk,
+  PerkId,
+  RewardPayout,
+  Submission,
+  SubmissionId,
+  TokenAmount,
+  UserId,
+} from "@creator-platform/shared";
+
+export type {
+  Challenge,
+  ChallengeId,
+  Claim,
+  ClaimId,
+  Creator,
+  CreatorId,
+  Page,
+  PageRequest,
+  Perk,
+  PerkId,
+  RewardPayout,
+  Submission,
+  SubmissionId,
+  UserId,
+};
+
+export interface OperationAccepted {
+  operationId: string;
+  status: "pending";
+}
+
+export interface SessionView {
+  userId: UserId;
+  expiresAt: IsoTimestamp;
+}
+
+export interface CreateCreatorInput {
+  handle: string;
+  displayName: string;
+  bio?: string;
+}
+
+export interface CreateChallengeInput {
+  creatorId: CreatorId;
+  title: string;
+  description: string;
+  rewardAmount: TokenAmount;
+  submissionDeadline: IsoTimestamp;
+}
+
+export interface CreateSubmissionInput {
+  challengeId: ChallengeId;
+  text?: string;
+  attachmentIds?: string[];
+}
+
+export interface MutationOptions {
+  idempotencyKey: IdempotencyKey;
+}
+
+export interface WorldProofInput {
+  verificationId: string;
+  action: string;
+  signal: string;
+  proof: unknown;
+}
+
+export interface WorldVerificationView {
+  verified: boolean;
+  verifiedAt?: IsoTimestamp;
+}
+
+// TODO: Generate transport DTOs from OpenAPI once controllers exist.
+// OPEN QUESTION: Decide whether Page<T> uses a single opaque cursor or per-filter cursors.

@@ -1,0 +1,31 @@
+{
+  "name": "creator-platform",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @creator-platform/database db:generate",
+    "db:migrate": "pnpm --filter @creator-platform/database db:migrate",
+    "db:seed": "pnpm --filter @creator-platform/database db:seed",
+    "hedera:setup": "pnpm --filter @creator-platform/hedera hedera:setup",
+    "hedera:create-topic": "pnpm --filter @creator-platform/hedera hedera:create-topic",
+    "hedera:create-demo-token": "pnpm --filter @creator-platform/hedera hedera:create-demo-token"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}

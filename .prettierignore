@@ -1,0 +1,7 @@
+node_modules/
+.turbo/
+dist/
+coverage/
+packages/shared/
+docs/
+packages/database/prisma/migrations/

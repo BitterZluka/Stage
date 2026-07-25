@@ -1,0 +1,47 @@
+export enum CreatorStatus {
+  Active = "active",
+  Suspended = "suspended",
+}
+
+export enum ChallengeStatus {
+  Draft = "draft",
+  Published = "published",
+  Judging = "judging",
+  Completed = "completed",
+  Cancelled = "cancelled",
+}
+
+export enum SubmissionStatus {
+  Submitted = "submitted",
+  Winner = "winner",
+  Rejected = "rejected",
+}
+
+export enum PayoutStatus {
+  Pending = "pending",
+  Requested = "requested",
+  Confirmed = "confirmed",
+  Failed = "failed",
+}
+
+export enum PerkStatus {
+  Draft = "draft",
+  Active = "active",
+  Paused = "paused",
+  Exhausted = "exhausted",
+}
+
+export enum ClaimStatus {
+  PendingMint = "pending_mint",
+  Minted = "minted",
+  PendingRedemption = "pending_redemption",
+  Redeemed = "redeemed",
+  Failed = "failed",
+}
+
+export enum TransactionStatus {
+  Pending = "pending",
+  Success = "success",
+  Failed = "failed",
+  Unknown = "unknown",
+}

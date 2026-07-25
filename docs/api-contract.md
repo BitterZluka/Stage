@@ -1,0 +1,132 @@
+# MVP API contract
+
+Base URL: `/api/v1`. JSON, ISO-8601 UTC dates, string IDs, and decimal-string token amounts. The contract is published as OpenAPI; `packages/shared` contains transport types without NestJS/Prisma/SDK dependencies.
+
+## General rules
+
+- Auth: secure httpOnly session cookie (web) or Bearer JWT; `401` means the session is missing/invalid, while `403` means a policy denial.
+- Idempotency: mutations with an external effect require `Idempotency-Key`; a repeated request returns the same resource/operation.
+- Async response: `202 { "operationId": "...", "status": "PENDING" }`.
+- Pagination: `?cursor=&limit=20`, response `{ items, nextCursor }`, maximum 100.
+- Correlation: request/response `X-Request-Id`; the operation ID is not the request ID.
+- Error:
+
+```json
+{
+  "error": {
+    "code": "CHALLENGE_CLOSED",
+    "message": "Challenge is closed",
+    "details": {},
+    "requestId": "uuid"
+  }
+}
+```
+
+Expected codes: `VALIDATION_FAILED(400)`, `UNAUTHENTICATED(401)`, `FORBIDDEN(403)`, `NOT_FOUND(404)`, `CONFLICT(409)`, `WORLD_VERIFICATION_REQUIRED(403)`, `RATE_LIMITED(429)`, `DEPENDENCY_UNAVAILABLE(503)`. Internal/SDK details are not returned to the client.
+
+Auth notation: `Public`, `User`, `World` (User + verified), `Creator` (owner), `Admin`, `WorldCallback` (verified signature/proof transport).
+
+## Endpoint map
+
+Chain column: `—` — none; `R` — Hedera/Mirror read; `W(outbox)` — write only through outbox/worker; `HCS(outbox)` — audit projection. Sync: `sync`, `202 async`, or `eventual read`.
+
+| Area | Method / path | Request DTO → response | Auth / authz | Errors beyond common errors | Chain | Sync |
+|---|---|---|---|---|---|---|
+| Auth | `POST /auth/challenge` | `{ accountId? }` → `{ challengeId, message, expiresAt }` | Public; rate limit | `ACCOUNT_INVALID` | — | sync |
+| Auth | `POST /auth/session` | `{ challengeId, signature?, emailCode? }` → `{ user, expiresAt }` | Public; challenge owner | `CHALLENGE_EXPIRED`, `SIGNATURE_INVALID` | — | sync |
+| Auth | `GET /auth/me` | — → `UserView` | User; self | — | — | sync |
+| Auth | `DELETE /auth/session` | — → `204` | User; self | — | — | sync |
+| Creators | `GET /creators` | query `cursor,limit` → page `CreatorCard` | Public | — | — | sync |
+| Creators | `POST /creators` | `CreateCreatorDto` → `CreatorView` | User; one owned creator in MVP | `HANDLE_TAKEN`, `CREATOR_LIMIT` | HCS(outbox) | sync DB; audit eventual |
+| Creators | `GET /creators/:creatorId` | — → `CreatorView` | Public | — | — | sync |
+| Creators | `PATCH /creators/:creatorId` | `UpdateCreatorDto` → `CreatorView` | Creator | `HANDLE_TAKEN`, `VERSION_CONFLICT` | — | sync |
+| Tokens | `POST /creators/:creatorId/token` | `CreateTokenDto` → `OperationAccepted` | Creator; no active token | `TOKEN_EXISTS`, `INVALID_SUPPLY` | W(outbox)+HCS | 202 async |
+| Tokens | `GET /creators/:creatorId/token` | — → `CreatorTokenView` | Public | `TOKEN_NOT_CREATED` | R optional | eventual read |
+| Tokens | `GET /operations/:operationId` | — → `OperationView` | User; actor/affected creator/admin | — | R during reconciliation | eventual read |
+| Challenges | `GET /challenges` | filters `creatorId,status,cursor` → page | Public | `FILTER_INVALID` | — | sync |
+| Challenges | `POST /creators/:creatorId/challenges` | `CreateChallengeDto` → `ChallengeView` | Creator | `TOKEN_NOT_ACTIVE`, `REWARD_INVALID` | — | sync |
+| Challenges | `GET /challenges/:challengeId` | — → `ChallengeView` | Public; draft only Creator | — | — | sync |
+| Challenges | `PATCH /challenges/:challengeId` | `UpdateChallengeDto` → view | Creator; only draft | `CHALLENGE_NOT_DRAFT`, `VERSION_CONFLICT` | — | sync |
+| Challenges | `POST /challenges/:challengeId/publish` | `{ expectedVersion }` → view | Creator | `WINDOW_INVALID`, `INSUFFICIENT_TREASURY` | HCS(outbox) | sync DB; audit eventual |
+| Challenges | `POST /challenges/:challengeId/close` | `{ expectedVersion }` → view | Creator | `ALREADY_CLOSED` | — | sync |
+| Submissions | `POST /challenges/:challengeId/submissions` | `CreateSubmissionDto` → `SubmissionView` | World; challenge open, one/user | `CHALLENGE_CLOSED`, `SUBMISSION_EXISTS` | — | sync |
+| Submissions | `POST /submissions/:submissionId/submit` | `{ expectedVersion }` → view | World; author | `CONTENT_REQUIRED`, `ALREADY_SUBMITTED` | HCS(outbox) | sync DB; audit eventual |
+| Submissions | `GET /submissions/:submissionId` | — → view | author, challenge Creator, Admin | — | — | sync |
+| Submissions | `GET /challenges/:challengeId/submissions` | query `status,cursor` → page | Creator; own challenge | — | — | sync |
+| Submissions | `POST /submissions/:submissionId/decision` | `DecisionDto` → view/operation | Creator; own challenge | `ALREADY_REVIEWED`, `TREASURY_UNAVAILABLE` | accepted: W(outbox)+HCS | accepted 202; rejected sync |
+| Rewards | `GET /rewards` | query `cursor` → page `RewardView` | User; own rewards | — | R optional | eventual read |
+| Rewards | `GET /rewards/:rewardId` | — → `RewardView` | recipient, Creator, Admin | — | R during reconciliation | eventual read |
+| World | `POST /world/verification/request` | `{ action }` → `{ verificationId, action, signal, expiresAt }` | User; self | `ALREADY_VERIFIED` | — | sync |
+| World | `POST /world/verification/complete` | `WorldProofDto` → `WorldVerificationView` | User; signal bound to self | `PROOF_INVALID`, `PROOF_REPLAYED`, `ACTION_MISMATCH` | — | sync |
+| World | `POST /world/callback` | provider payload → `204` | WorldCallback; exact verification | `CALLBACK_INVALID`, `CALLBACK_REPLAYED` | — | sync/idempotent |
+| World | `GET /world/verification` | — → view | User; self | — | — | sync |
+| Perks | `GET /creators/:creatorId/perks` | query `cursor` → page | Public | — | — | sync |
+| Perks | `POST /creators/:creatorId/perks` | `CreatePerkDto` → `PerkView` | Creator | `THRESHOLD_INVALID`, `INVENTORY_INVALID` | HCS(outbox) | sync DB; audit eventual |
+| Perks | `PATCH /perks/:perkId` | `UpdatePerkDto` → view | Creator; unclaimed constraints | `PERK_LOCKED`, `VERSION_CONFLICT` | — | sync |
+| Claims | `POST /perks/:perkId/claims` | `CreateClaimDto` → `OperationAccepted` | World; eligible holder; NFT association confirmed | `NOT_ELIGIBLE`, `OUT_OF_STOCK`, `CLAIM_EXISTS`, `NFT_NOT_ASSOCIATED` | R + W(outbox)+HCS | 202 async mint/transfer |
+| Claims | `GET /claims` | query `cursor` → own page | User; self | — | — | sync |
+| Claims | `GET /claims/:claimId` | — → view | claimant, perk Creator, Admin | — | — | sync |
+| Claims | `POST /claims/:claimId/redeem` | `{ expectedVersion }` → `ClaimView` | User; claimant and current NFT owner | `CLAIM_NOT_REDEEMABLE`, `NFT_OWNERSHIP_MISMATCH` | R + HCS(outbox) | sync DB; audit eventual |
+| Claims | `POST /claims/:claimId/fulfill` | `FulfillClaimDto` → `OperationAccepted` | Creator; own perk, redeem requested | `CLAIM_NOT_FULFILLABLE` | W(outbox burn)+HCS | 202 async burn after fulfillment |
+| Audit | `GET /audit/events` | filters `aggregateType,aggregateId,cursor` → redacted page | User; own/Creator scope, Admin all | `AUDIT_SCOPE_INVALID` | — | sync |
+| Audit | `GET /audit/public/:publicRef` | — → HCS-backed proof/view | Public | `ANCHOR_NOT_FOUND` | R | eventual read |
+
+## Key DTOs
+
+```ts
+type CreateCreatorDto = {
+  handle: string;          // ^[a-z0-9-]{3,32}$
+  displayName: string;     // 1..80
+  bio?: string;            // <= 500
+};
+
+type CreateTokenDto = {
+  name: string;            // 1..100
+  symbol: string;          // 1..10, uppercase
+  decimals: number;        // MVP: 0
+  initialSupply: string;   // positive base units
+};
+
+type CreateChallengeDto = {
+  title: string;
+  description: string;
+  startsAt: string;
+  endsAt: string;
+  rewardAmount: string;    // server binds creator token
+};
+
+type CreateSubmissionDto = {
+  text: string;            // 1..5000
+  attachmentIds?: string[];
+};
+
+type DecisionDto =
+  | { decision: "ACCEPT"; expectedVersion: number }
+  | { decision: "REJECT"; reasonCode: string; note?: string; expectedVersion: number };
+
+type WorldProofDto = {
+  verificationId: string;
+  action: string;
+  signal: string;
+  proof: unknown;          // provider shape validated by adapter
+};
+
+type CreatePerkDto = {
+  title: string;
+  description: string;
+  tokenThreshold: string;
+  inventory: number;
+};
+
+type CreateClaimDto = {
+  fulfillmentInput?: Record<string, string>; // allowlist by perk type
+};
+```
+
+Response views do not contain another user's email, World proof/nullifier, signer/key references, treasury account internals, or raw Hedera receipts. `CreatorTokenView.chainStatus` and `RewardView.chainStatus` explicitly distinguish `PENDING`, `CONFIRMED`, and `FAILED`.
+
+## Frontend services and mocks
+
+`apps/web` depends on `AuthService`, `CreatorService`, `ChallengeService`, `SubmissionService`, `RewardService`, `WorldService`, `PerkService`, and `ClaimService`. The `Api*Service` implementation calls the API; `Mock*Service` reproduces the same DTOs, delays, and errors. Mocks do not import server repositories or simulate the Hedera system signature.
+
+**Temporary MVP solution:** poll `/operations/:id` every 2 seconds with backoff and stop after 60 seconds; after polling stops, the UI displays “processing continues,” not a transaction error.

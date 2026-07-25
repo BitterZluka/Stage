@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ChallengeStatus {
+  DRAFT
+  PUBLISHED
+  JUDGING
+  COMPLETED
+  CANCELLED
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  WINNER
+  REJECTED
+}
+
+enum OperationStatus {
+  PENDING
+  PROCESSING
+  SUBMITTED
+  CONFIRMED
+  FAILED
+  NEEDS_REVIEW
+}
+
+enum ClaimStatus {
+  PENDING_MINT
+  MINTED
+  PENDING_REDEMPTION
+  REDEEMED
+  FAILED
+}
+
+model User {
+  id                 String              @id @default(uuid())
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  wallets            Wallet[]
+  creator            Creator?
+  submissions        Submission[]
+  rewardReservations RewardReservation[]
+  rewardPayouts      RewardPayout[]
+  worldVerifications WorldVerification[]
+  claims             Claim[]
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String
+  accountId String   @unique
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Creator {
+  id            String         @id @default(uuid())
+  ownerUserId   String         @unique
+  handle        String         @unique
+  displayName   String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  owner         User           @relation(fields: [ownerUserId], references: [id])
+  token         CreatorToken?
+  challenges    Challenge[]
+  perks         Perk[]
+}
+
+model CreatorToken {
+  id            String   @id @default(uuid())
+  creatorId     String   @unique
+  hederaTokenId String?  @unique
+  name          String
+  symbol        String
+  decimals      Int
+  totalSupply   String
+  status        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  creator       Creator  @relation(fields: [creatorId], references: [id])
+
+  // OPEN QUESTION: fixed supply for MVP or retain a supply key for future minting?
+}
+
+model Challenge {
+  id                 String              @id @default(uuid())
+  creatorId          String
+  title              String
+  description        String
+  status             ChallengeStatus     @default(DRAFT)
+  submissionDeadline DateTime
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  creator            Creator             @relation(fields: [creatorId], references: [id])
+  submissions        Submission[]
+  rewardRule         RewardRule?
+  reservations       RewardReservation[]
+}
+
+model Submission {
+  id                String            @id @default(uuid())
+  challengeId       String
+  authorUserId      String
+  status            SubmissionStatus  @default(SUBMITTED)
+  text              String?
+  artifactRefs      Json?
+  createdAt         DateTime          @default(now())
+  challenge         Challenge         @relation(fields: [challengeId], references: [id])
+  author            User              @relation(fields: [authorUserId], references: [id])
+  rewardReservation RewardReservation?
+
+  @@unique([challengeId, authorUserId])
+}
+
+model RewardRule {
+  id          String    @id @default(uuid())
+  challengeId String    @unique
+  amount      String
+  maxWinners  Int       @default(1)
+  challenge   Challenge @relation(fields: [challengeId], references: [id])
+}
+
+model RewardReservation {
+  id           String           @id @default(uuid())
+  challengeId  String
+  submissionId String           @unique
+  recipientId  String
+  amount       String
+  status       OperationStatus  @default(PENDING)
+  createdAt    DateTime         @default(now())
+  challenge    Challenge        @relation(fields: [challengeId], references: [id])
+  submission   Submission       @relation(fields: [submissionId], references: [id])
+  recipient    User             @relation(fields: [recipientId], references: [id])
+  payout       RewardPayout?
+
+  @@unique([challengeId, recipientId])
+}
+
+model RewardPayout {
+  id             String             @id @default(uuid())
+  reservationId  String             @unique
+  recipientId    String
+  amount         String
+  status         OperationStatus    @default(PENDING)
+  transactionId  String?            @unique
+  requestedAt    DateTime           @default(now())
+  confirmedAt    DateTime?
+  reservation    RewardReservation  @relation(fields: [reservationId], references: [id])
+  recipient      User               @relation(fields: [recipientId], references: [id])
+}
+
+model WorldVerification {
+  id            String   @id @default(uuid())
+  userId        String
+  action        String
+  signalHash    String
+  nullifierHash String
+  verifiedAt    DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@unique([action, nullifierHash])
+  @@index([userId, action])
+}
+
+model Perk {
+  id                   String   @id @default(uuid())
+  creatorId            String
+  title                String
+  description          String
+  price                 String
+  inventory            Int
+  claimNftTokenId      String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  creator               Creator @relation(fields: [creatorId], references: [id])
+  claims                Claim[]
+}
+
+model Claim {
+  id                String            @id @default(uuid())
+  perkId            String
+  claimantId        String
+  status            ClaimStatus       @default(PENDING_MINT)
+  nftTokenId        String?
+  nftSerial         String?
+  fulfillmentData   Json?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  perk              Perk              @relation(fields: [perkId], references: [id])
+  claimant          User              @relation(fields: [claimantId], references: [id])
+  redemption        ClaimRedemption?
+
+  @@unique([perkId, claimantId])
+  @@unique([nftTokenId, nftSerial])
+}
+
+model ClaimRedemption {
+  id             String           @id @default(uuid())
+  claimId        String           @unique
+  requestedAt    DateTime         @default(now())
+  fulfilledAt    DateTime?
+  burnTxId       String?          @unique
+  claim          Claim            @relation(fields: [claimId], references: [id])
+}
+
+model AuditEvent {
+  id             String   @id @default(uuid())
+  eventType      String
+  entityId       String
+  actorId        String?
+  payload        Json
+  publicPayload  Json?
+  occurredAt     DateTime @default(now())
+  hcsSequence    String?
+
+  @@index([entityId, occurredAt])
+}
+
+model BlockchainTransaction {
+  id                 String          @id @default(uuid())
+  idempotencyKey     String          @unique
+  operationType      String
+  requestHash        String
+  status             OperationStatus @default(PENDING)
+  hederaTransactionId String?         @unique
+  result             Json?
+  attempts           Int             @default(0)
+  lastErrorCode      String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+model OutboxEvent {
+  id             String          @id @default(uuid())
+  idempotencyKey String          @unique
+  eventType      String
+  aggregateId    String
+  payload        Json
+  status         OperationStatus @default(PENDING)
+  attempts       Int             @default(0)
+  availableAt    DateTime        @default(now())
+  publishedAt    DateTime?
+  createdAt      DateTime        @default(now())
+
+  @@index([status, availableAt])
+}

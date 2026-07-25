@@ -1,0 +1,25 @@
+{
+  "name": "@creator-platform/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "lint": "eslint src --max-warnings=0",
+    "typecheck": "tsc -b --pretty false",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@creator-platform/database": "workspace:*",
+    "@creator-platform/hedera": "workspace:*",
+    "@creator-platform/shared": "workspace:*",
+    "bullmq": "^5.81.2",
+    "ioredis": "^5.11.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "tsx": "^4.23.1"
+  }
+}
