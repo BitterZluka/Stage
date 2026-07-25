@@ -47,7 +47,6 @@ export interface DiscoverCreator {
   followersCount: number;
   activeChallengesCount: number;
   perksCount: number;
-  verified: boolean;
   featured?: boolean;
   trending?: boolean;
   recentlyActive?: boolean;
@@ -77,7 +76,6 @@ export const DISCOVER_CREATORS: DiscoverCreator[] = [
     followersCount: 24_800,
     activeChallengesCount: 2,
     perksCount: 5,
-    verified: true,
     featured: true,
     trending: true,
     recentlyActive: true,
@@ -102,7 +100,6 @@ export const DISCOVER_CREATORS: DiscoverCreator[] = [
     followersCount: 18_200,
     activeChallengesCount: 1,
     perksCount: 3,
-    verified: true,
     recentlyActive: true,
     createdAt: "2025-03-04T00:00:00.000Z",
   },
@@ -120,7 +117,6 @@ export const DISCOVER_CREATORS: DiscoverCreator[] = [
     followersCount: 31_400,
     activeChallengesCount: 3,
     perksCount: 6,
-    verified: false,
     trending: true,
     recentlyActive: true,
     createdAt: "2024-11-20T00:00:00.000Z",
@@ -139,7 +135,6 @@ export const DISCOVER_CREATORS: DiscoverCreator[] = [
     followersCount: 12_700,
     activeChallengesCount: 2,
     perksCount: 4,
-    verified: false,
     createdAt: "2025-01-08T00:00:00.000Z",
   },
   {
@@ -156,7 +151,6 @@ export const DISCOVER_CREATORS: DiscoverCreator[] = [
     followersCount: 16_900,
     activeChallengesCount: 1,
     perksCount: 4,
-    verified: true,
     createdAt: "2025-04-17T00:00:00.000Z",
   },
   {
@@ -173,7 +167,6 @@ export const DISCOVER_CREATORS: DiscoverCreator[] = [
     followersCount: 9_600,
     activeChallengesCount: 1,
     perksCount: 2,
-    verified: false,
     createdAt: "2025-05-02T00:00:00.000Z",
   },
   {
@@ -190,7 +183,6 @@ export const DISCOVER_CREATORS: DiscoverCreator[] = [
     followersCount: 21_300,
     activeChallengesCount: 2,
     perksCount: 3,
-    verified: false,
     recentlyActive: true,
     createdAt: "2025-06-01T00:00:00.000Z",
   },
@@ -208,7 +200,6 @@ export const DISCOVER_CREATORS: DiscoverCreator[] = [
     followersCount: 7_200,
     activeChallengesCount: 1,
     perksCount: 2,
-    verified: false,
     createdAt: "2025-06-19T00:00:00.000Z",
   },
   {
@@ -225,7 +216,6 @@ export const DISCOVER_CREATORS: DiscoverCreator[] = [
     followersCount: 5_400,
     activeChallengesCount: 1,
     perksCount: 3,
-    verified: true,
     trending: true,
     createdAt: "2025-07-05T00:00:00.000Z",
   },
@@ -235,14 +225,12 @@ export interface CreatorFilterState {
   category: CreatorCategory[];
   activity: ActivityFilter[];
   communitySize: CommunitySize[];
-  verifiedOnly: boolean;
 }
 
 export const EMPTY_CREATOR_FILTERS: CreatorFilterState = {
   category: [],
   activity: [],
   communitySize: [],
-  verifiedOnly: false,
 };
 
 /**

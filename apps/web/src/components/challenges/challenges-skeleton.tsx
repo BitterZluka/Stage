@@ -2,21 +2,6 @@ function SkeletonBlock({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-lg bg-black/10 ${className}`} aria-hidden="true" />;
 }
 
-export function FeaturedChallengeSkeleton() {
-  return (
-    <div className="grid grid-cols-1 overflow-hidden rounded-2xl border-2 border-black lg:grid-cols-2">
-      <SkeletonBlock className="h-56 rounded-none" />
-      <div className="space-y-3 p-8">
-        <SkeletonBlock className="h-5 w-24" />
-        <SkeletonBlock className="h-8 w-3/4" />
-        <SkeletonBlock className="h-4 w-full" />
-        <SkeletonBlock className="h-4 w-2/3" />
-        <SkeletonBlock className="h-10 w-40" />
-      </div>
-    </div>
-  );
-}
-
 export function ChallengeCardSkeleton() {
   return (
     <div className="overflow-hidden rounded-2xl border-2 border-black">

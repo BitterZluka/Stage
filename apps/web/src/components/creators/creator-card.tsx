@@ -3,7 +3,6 @@ import { FlameIcon, GiftIcon, UsersIcon } from "../icons";
 import { Button } from "../ui/button";
 import { SurfaceCard } from "../ui/surface-card";
 import { CreatorCategoryBadge } from "./creator-category-badge";
-import { CreatorVerifiedBadge } from "./creator-verified-badge";
 import { FollowButton } from "./follow-button";
 import { formatFollowerCount } from "./format";
 
@@ -24,15 +23,10 @@ export function CreatorCard({ creator, following, onToggleFollow }: CreatorCardP
         <div className="absolute top-3 left-3">
           <CreatorCategoryBadge category={creator.category} />
         </div>
-        {creator.verified && (
-          <div className="absolute top-3 right-3">
-            <CreatorVerifiedBadge />
-          </div>
-        )}
       </div>
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <div className="mb-3 -mt-9 flex items-end justify-between gap-3">
+        <div className="mb-3 -mt-4 flex items-end justify-between gap-3">
           <span
             className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-black bg-white text-sm font-bold shadow-offset"
             aria-hidden="true"

@@ -99,11 +99,6 @@ export function CreatorsView() {
     });
   }
 
-  function setVerifiedOnly(value: boolean) {
-    setVisibleCount(PAGE_SIZE);
-    setFilters((prev) => ({ ...prev, verifiedOnly: value }));
-  }
-
   function clearAll() {
     setSearchQuery("");
     setFilters(EMPTY_CREATOR_FILTERS);
@@ -187,7 +182,6 @@ export function CreatorsView() {
               <CreatorFilters
                 filters={filters}
                 onToggle={toggleFilter}
-                onSetVerifiedOnly={setVerifiedOnly}
                 onClear={clearAll}
                 activeCount={activeFilterCount}
               />
@@ -301,7 +295,6 @@ export function CreatorsView() {
             <CreatorFilters
               filters={filters}
               onToggle={toggleFilter}
-              onSetVerifiedOnly={setVerifiedOnly}
               onClear={clearAll}
               activeCount={activeFilterCount}
               heading="Filters"

@@ -4,7 +4,6 @@ import type {
   ChallengeStatus,
   RewardType,
   SubmissionFormat,
-  VerificationFilter,
 } from "../../content/challenges";
 import { Checkbox } from "../ui/checkbox";
 
@@ -28,10 +27,6 @@ const REWARD_OPTIONS: { value: RewardType; label: string }[] = [
   { value: "both", label: "Both" },
 ];
 
-const VERIFICATION_OPTIONS: { value: VerificationFilter; label: string }[] = [
-  { value: "required", label: "Verification required" },
-  { value: "not-required", label: "No verification required" },
-];
 
 export interface ChallengeFiltersProps {
   filters: ChallengeFilterState;
@@ -98,19 +93,6 @@ export function ChallengeFilters({
             id={`filter-reward-${option.value}`}
             checked={filters.rewardType.includes(option.value)}
             onChange={() => onToggle("rewardType", option.value)}
-          >
-            {option.label}
-          </Checkbox>
-        ))}
-      </FilterGroup>
-
-      <FilterGroup title="Verification" last>
-        {VERIFICATION_OPTIONS.map((option) => (
-          <Checkbox
-            key={option.value}
-            id={`filter-verification-${option.value}`}
-            checked={filters.verification.includes(option.value)}
-            onChange={() => onToggle("verification", option.value)}
           >
             {option.label}
           </Checkbox>

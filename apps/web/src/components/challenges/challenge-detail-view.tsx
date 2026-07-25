@@ -68,7 +68,7 @@ function fixtureDetail(challenge: DiscoverChallenge): ChallengeDetail {
           : "published",
     submissionKind: challenge.format.toLowerCase(),
     verificationMode: "manual",
-    requiresWorldVerification: challenge.verificationRequired,
+    requiresWorldVerification: false,
     rewardAmount: String(challenge.winnerReward?.amount ?? 0),
     maxWinners: 1,
     winnerCount: challenge.status === "completed" ? 1 : 0,

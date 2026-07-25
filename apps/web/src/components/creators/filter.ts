@@ -26,16 +26,9 @@ export function matchesCreatorFilters(
     return false;
   }
 
-  if (filters.verifiedOnly && !creator.verified) return false;
-
   return true;
 }
 
 export function countActiveFilters(filters: CreatorFilterState): number {
-  return (
-    filters.category.length +
-    filters.activity.length +
-    filters.communitySize.length +
-    (filters.verifiedOnly ? 1 : 0)
-  );
+  return filters.category.length + filters.activity.length + filters.communitySize.length;
 }

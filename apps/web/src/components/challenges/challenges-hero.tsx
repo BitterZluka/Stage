@@ -11,7 +11,7 @@ export function ChallengesHero() {
 
       <div className="relative z-10 max-w-2xl">
         <h1 className="font-display mb-4 text-3xl leading-[1.1] font-bold sm:text-4xl lg:text-5xl">
-          DISCOVER CREATOR <span className="text-holo-gradient"> CHALLENGES</span>
+          DISCOVER CREATOR  <span className="text-holo-gradient"> CHALLENGES</span>
         </h1>
         <p className="max-w-xl text-base leading-relaxed font-medium text-gray-700 sm:text-lg">
           Join creative challenges from artists, musicians, bloggers, and creators. Submit your work, earn

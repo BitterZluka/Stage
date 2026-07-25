@@ -15,13 +15,8 @@ import { ChallengeSearch } from "./challenge-search";
 import { ChallengeSortSelect } from "./challenge-sort-select";
 import { ChallengesEmptyState } from "./challenges-empty-state";
 import { ChallengesErrorState } from "./challenges-error-state";
-import {
-  ChallengeFiltersSkeleton,
-  ChallengesGridSkeleton,
-  FeaturedChallengeSkeleton,
-} from "./challenges-skeleton";
+import { ChallengeFiltersSkeleton, ChallengesGridSkeleton } from "./challenges-skeleton";
 import { ChallengesHero } from "./challenges-hero";
-import { FeaturedChallengeCard } from "./featured-challenge-card";
 import { matchesChallengeFilters, countActiveFilters } from "./filter";
 import { type SortOption, sortChallenges } from "./sort";
 
@@ -73,16 +68,10 @@ export function ChallengesView() {
   const hasActiveQuery = searchQuery.trim().length > 0;
   const hasActiveFilters = hasActiveQuery || activeFilterCount > 0;
 
-  const featured = useMemo(
-    () => (hasActiveFilters ? undefined : challenges.find((item) => item.featured)),
-    [challenges, hasActiveFilters],
-  );
-
   const results = useMemo(() => {
     const matched = challenges.filter((item) => matchesChallengeFilters(item, searchQuery, filters));
-    const withoutFeatured = featured ? matched.filter((item) => item.id !== featured.id) : matched;
-    return sortChallenges(withoutFeatured, sort);
-  }, [challenges, searchQuery, filters, featured, sort]);
+    return sortChallenges(matched, sort);
+  }, [challenges, searchQuery, filters, sort]);
 
   const visibleResults = results.slice(0, visibleCount);
   const canLoadMore = visibleResults.length < results.length;
@@ -180,54 +169,42 @@ export function ChallengesView() {
 
           {!error && loading && (
             <div className="space-y-8">
-              <FeaturedChallengeSkeleton />
               <ChallengesGridSkeleton />
             </div>
           )}
 
           {!error && !loading && (
-            <>
-              {featured && (
-                <section aria-labelledby="featured-challenge-heading" className="mb-10">
-                  <h2 id="featured-challenge-heading" className="sr-only">
-                    Featured challenge
-                  </h2>
-                  <FeaturedChallengeCard challenge={featured} />
-                </section>
-              )}
+            <section aria-labelledby="challenge-results-heading">
+              <h2 id="challenge-results-heading" className="font-display mb-6 text-2xl font-bold sm:text-3xl">
+                {hasActiveFilters ? `${results.length} challenges found` : "All challenges"}
+              </h2>
 
-              <section aria-labelledby="challenge-results-heading">
-                <h2 id="challenge-results-heading" className="font-display mb-6 text-2xl font-bold sm:text-3xl">
-                  {hasActiveFilters ? `${results.length} challenges found` : "All challenges"}
-                </h2>
+              {visibleResults.length === 0 ? (
+                <ChallengesEmptyState onClear={clearAll} showClear={hasActiveFilters} />
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                    {visibleResults.map((challenge) => (
+                      <ChallengeCard key={challenge.id} challenge={challenge} />
+                    ))}
+                  </div>
 
-                {visibleResults.length === 0 ? (
-                  <ChallengesEmptyState onClear={clearAll} showClear={hasActiveFilters} />
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                      {visibleResults.map((challenge) => (
-                        <ChallengeCard key={challenge.id} challenge={challenge} />
-                      ))}
+                  {canLoadMore && (
+                    <div className="mt-10 flex justify-center">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="md"
+                        onClick={handleLoadMore}
+                        disabled={loadingMore}
+                      >
+                        {loadingMore ? "Loading…" : "Load more challenges"}
+                      </Button>
                     </div>
-
-                    {canLoadMore && (
-                      <div className="mt-10 flex justify-center">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="md"
-                          onClick={handleLoadMore}
-                          disabled={loadingMore}
-                        >
-                          {loadingMore ? "Loading…" : "Load more challenges"}
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </section>
-            </>
+                  )}
+                </>
+              )}
+            </section>
           )}
         </div>
       </div>

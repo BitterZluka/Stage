@@ -30,7 +30,6 @@ export type ArrayFilterKey = "category" | "activity" | "communitySize";
 export interface CreatorFiltersProps {
   filters: CreatorFilterState;
   onToggle<K extends ArrayFilterKey>(group: K, value: CreatorFilterState[K][number]): void;
-  onSetVerifiedOnly: (value: boolean) => void;
   onClear: () => void;
   activeCount: number;
   heading?: string;
@@ -40,7 +39,6 @@ export interface CreatorFiltersProps {
 export function CreatorFilters({
   filters,
   onToggle,
-  onSetVerifiedOnly,
   onClear,
   activeCount,
   heading = "Filters",
@@ -99,40 +97,6 @@ export function CreatorFilters({
           </Checkbox>
         ))}
       </FilterGroup>
-
-      <fieldset>
-        <legend className="mb-2 text-xs font-bold tracking-wide text-black/50 uppercase">Verification</legend>
-        <div className="flex flex-col gap-0.5">
-          <label
-            htmlFor="filter-verification-all"
-            className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm font-medium select-none hover:bg-black/5"
-          >
-            <input
-              id="filter-verification-all"
-              type="radio"
-              name="creator-verification"
-              checked={!filters.verifiedOnly}
-              onChange={() => onSetVerifiedOnly(false)}
-              className="h-4 w-4 border-2 border-black accent-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
-            />
-            All creators
-          </label>
-          <label
-            htmlFor="filter-verification-verified"
-            className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-1.5 text-sm font-medium select-none hover:bg-black/5"
-          >
-            <input
-              id="filter-verification-verified"
-              type="radio"
-              name="creator-verification"
-              checked={filters.verifiedOnly}
-              onChange={() => onSetVerifiedOnly(true)}
-              className="h-4 w-4 border-2 border-black accent-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
-            />
-            Verified creator
-          </label>
-        </div>
-      </fieldset>
     </div>
   );
 }

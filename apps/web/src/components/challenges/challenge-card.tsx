@@ -5,7 +5,6 @@ import { Button } from "../ui/button";
 import { SurfaceCard } from "../ui/surface-card";
 import { ChallengeStatusBadge } from "./challenge-status-badge";
 import { RewardBadge } from "./reward-badge";
-import { VerificationBadge } from "./verification-badge";
 
 export interface ChallengeCardProps {
   challenge: DiscoverChallenge;
@@ -39,8 +38,6 @@ export function ChallengeCard({ challenge }: ChallengeCardProps) {
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <h3 className="font-display mb-1.5 text-base leading-snug font-bold">{challenge.title}</h3>
         <p className="mb-3 line-clamp-2 text-sm text-gray-600">{challenge.description}</p>
-
-        <VerificationBadge required={challenge.verificationRequired} className="mb-3 self-start" />
 
         <div className="mt-auto space-y-1.5 border-t-2 border-black/10 pt-3">
           {(challenge.winnerReward ?? challenge.rewardTBA) && (

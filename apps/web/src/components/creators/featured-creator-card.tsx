@@ -4,7 +4,6 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { SurfaceCard } from "../ui/surface-card";
 import { CreatorCategoryBadge } from "./creator-category-badge";
-import { CreatorVerifiedBadge } from "./creator-verified-badge";
 import { FollowButton } from "./follow-button";
 import { formatFollowerCount } from "./format";
 
@@ -27,11 +26,6 @@ export function FeaturedCreatorCard({ creator, following, onToggleFollow, classN
         <div className="absolute top-4 left-4">
           <Badge color="yellow">Featured</Badge>
         </div>
-        {creator.verified && (
-          <div className="absolute top-4 right-4">
-            <CreatorVerifiedBadge />
-          </div>
-        )}
 
         <span
           className="relative z-10 flex h-20 w-20 items-center justify-center rounded-full border-2 border-black bg-white text-2xl font-bold shadow-offset"

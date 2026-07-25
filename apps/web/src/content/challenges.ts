@@ -17,7 +17,6 @@
 export type SubmissionFormat = "Image" | "Video" | "Text" | "Link";
 export type ChallengeStatus = "open" | "ending-soon" | "upcoming" | "completed";
 export type RewardType = "winner" | "participation" | "both";
-export type VerificationFilter = "required" | "not-required";
 
 export interface TokenReward {
   amount: number;
@@ -42,12 +41,10 @@ export interface DiscoverChallenge {
   rewardTBA?: boolean;
   participationReward?: TokenReward;
   submissionCount: number;
-  verificationRequired: boolean;
   /** Lower means ending sooner; absent for upcoming/completed challenges. */
   daysRemaining?: number;
   /** Lower means posted more recently; used for the "Newest" sort. */
   recencyRank: number;
-  featured?: boolean;
 }
 
 export const DISCOVER_CHALLENGES: DiscoverChallenge[] = [
@@ -66,10 +63,8 @@ export const DISCOVER_CHALLENGES: DiscoverChallenge[] = [
     winnerReward: { amount: 700, token: "LENA" },
     participationReward: { amount: 20, token: "LENA" },
     submissionCount: 312,
-    verificationRequired: true,
     daysRemaining: 2,
     recencyRank: 1,
-    featured: true,
   },
   {
     id: "best-edit-video",
@@ -85,7 +80,6 @@ export const DISCOVER_CHALLENGES: DiscoverChallenge[] = [
     rewardType: "winner",
     winnerReward: { amount: 1000, token: "NOVA" },
     submissionCount: 189,
-    verificationRequired: false,
     daysRemaining: 5,
     recencyRank: 2,
   },
@@ -104,7 +98,6 @@ export const DISCOVER_CHALLENGES: DiscoverChallenge[] = [
     winnerReward: { amount: 500, token: "MIKA" },
     participationReward: { amount: 10, token: "MIKA" },
     submissionCount: 421,
-    verificationRequired: false,
     daysRemaining: 9,
     recencyRank: 4,
   },
@@ -122,7 +115,6 @@ export const DISCOVER_CHALLENGES: DiscoverChallenge[] = [
     rewardType: "winner",
     winnerReward: { amount: 800, token: "BEAT" },
     submissionCount: 97,
-    verificationRequired: true,
     daysRemaining: 6,
     recencyRank: 3,
   },
@@ -140,7 +132,6 @@ export const DISCOVER_CHALLENGES: DiscoverChallenge[] = [
     rewardType: "winner",
     winnerReward: { amount: 1200, token: "AVA" },
     submissionCount: 64,
-    verificationRequired: false,
     daysRemaining: 12,
     recencyRank: 6,
   },
@@ -159,7 +150,6 @@ export const DISCOVER_CHALLENGES: DiscoverChallenge[] = [
     rewardType: "winner",
     rewardTBA: true,
     submissionCount: 0,
-    verificationRequired: false,
     recencyRank: 8,
   },
   {
@@ -176,7 +166,6 @@ export const DISCOVER_CHALLENGES: DiscoverChallenge[] = [
     rewardType: "winner",
     winnerReward: { amount: 650, token: "MIKA" },
     submissionCount: 288,
-    verificationRequired: true,
     recencyRank: 7,
   },
   {
@@ -194,7 +183,6 @@ export const DISCOVER_CHALLENGES: DiscoverChallenge[] = [
     winnerReward: { amount: 900, token: "BEAT" },
     participationReward: { amount: 25, token: "BEAT" },
     submissionCount: 156,
-    verificationRequired: true,
     daysRemaining: 1,
     recencyRank: 5,
   },
@@ -212,7 +200,6 @@ export const DISCOVER_CHALLENGES: DiscoverChallenge[] = [
     rewardType: "participation",
     participationReward: { amount: 15, token: "AVA" },
     submissionCount: 43,
-    verificationRequired: false,
     daysRemaining: 8,
     recencyRank: 9,
   },
@@ -231,7 +218,6 @@ export const DISCOVER_CHALLENGES: DiscoverChallenge[] = [
     winnerReward: { amount: 300, token: "NOVA" },
     participationReward: { amount: 5, token: "NOVA" },
     submissionCount: 72,
-    verificationRequired: false,
     daysRemaining: 14,
     recencyRank: 10,
   },
@@ -241,14 +227,12 @@ export interface ChallengeFilterState {
   status: ChallengeStatus[];
   format: SubmissionFormat[];
   rewardType: RewardType[];
-  verification: VerificationFilter[];
 }
 
 export const EMPTY_CHALLENGE_FILTERS: ChallengeFilterState = {
   status: [],
   format: [],
   rewardType: [],
-  verification: [],
 };
 
 /**
