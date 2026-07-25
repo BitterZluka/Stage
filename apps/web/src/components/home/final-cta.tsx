@@ -10,7 +10,10 @@ export function FinalCta() {
           "linear-gradient(135deg, var(--color-stage-cyan) 0%, var(--color-stage-lavender) 50%, var(--color-stage-pink) 100%)",
       }}
     >
-      <div className="bg-scanlines pointer-events-none absolute inset-0 opacity-[0.05]" aria-hidden="true" />
+      <div
+        className="bg-scanlines pointer-events-none absolute inset-0 opacity-[0.05]"
+        aria-hidden="true"
+      />
 
       <div className="relative z-10">
         <h2
@@ -21,8 +24,8 @@ export function FinalCta() {
           Your stage is waiting.
         </h2>
         <p className="mx-auto mb-8 max-w-lg text-lg font-medium text-white/90">
-          Whether you&apos;re here to join the community or build one, STAGE
-          has a place for you.
+          Whether you&apos;re here to join the community or build one, STAGE has
+          a place for you.
         </p>
         <div className="flex flex-wrap justify-center gap-4">
           <Button href="/explore" variant="primary" size="lg">

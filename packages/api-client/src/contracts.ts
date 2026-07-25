@@ -1,6 +1,11 @@
 import type {
   Challenge,
   ChallengeId,
+  CatalogChallenge,
+  CatalogCreator,
+  CatalogCreatorProfile,
+  CatalogPerk,
+  CatalogResponse,
   Claim,
   ClaimId,
   Creator,
@@ -28,6 +33,11 @@ import type {
 export type {
   Challenge,
   ChallengeId,
+  CatalogChallenge,
+  CatalogCreator,
+  CatalogCreatorProfile,
+  CatalogPerk,
+  CatalogResponse,
   Claim,
   ClaimId,
   Creator,
@@ -124,11 +134,11 @@ export interface UpdatePerkInput {
 export type SubmissionDecisionInput =
   | { decision: "accept"; expectedVersion: number }
   | {
-      decision: "reject";
-      expectedVersion: number;
-      reasonCode: string;
-      note?: string;
-    };
+    decision: "reject";
+    expectedVersion: number;
+    reasonCode: string;
+    note?: string;
+  };
 
 export interface CreateClaimInput {
   accountId?: HederaAccountId;

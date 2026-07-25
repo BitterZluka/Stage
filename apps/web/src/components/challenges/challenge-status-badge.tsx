@@ -20,7 +20,10 @@ export interface ChallengeStatusBadgeProps {
   className?: string;
 }
 
-export function ChallengeStatusBadge({ status, className = "" }: ChallengeStatusBadgeProps) {
+export function ChallengeStatusBadge({
+  status,
+  className = "",
+}: ChallengeStatusBadgeProps) {
   return (
     <Badge color={STATUS_COLOR[status]} className={className}>
       {STATUS_LABEL[status]}

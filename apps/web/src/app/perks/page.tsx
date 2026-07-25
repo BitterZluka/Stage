@@ -1,12 +1,7 @@
-import { ComingSoon } from "../../components/coming-soon";
+import { PerksView } from "../../components/perks/perks-view";
 
 export const metadata = { title: "Perks — STAGE" };
 
 export default function PerksPage() {
-  return (
-    <ComingSoon
-      title="The perks marketplace is coming soon"
-      description="Claiming merch, digital drops, and experiences with credits will live here."
-    />
-  );
+  return <PerksView />;
 }

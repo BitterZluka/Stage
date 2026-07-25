@@ -24,7 +24,8 @@ export type CreatorCategory =
   | "Education"
   | "Streaming";
 
-export type ActivityFilter = "active-challenges" | "perks-available" | "recently-active";
+export type ActivityFilter =
+  "active-challenges" | "perks-available" | "recently-active";
 export type CommunitySize = "emerging" | "growing" | "established";
 
 export interface CreatorHighlight {

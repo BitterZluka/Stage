@@ -15,7 +15,11 @@ export interface CreatorCategoryStripProps {
   className?: string;
 }
 
-export function CreatorCategoryStrip({ selected, onToggle, className = "" }: CreatorCategoryStripProps) {
+export function CreatorCategoryStrip({
+  selected,
+  onToggle,
+  className = "",
+}: CreatorCategoryStripProps) {
   return (
     <div
       role="group"
@@ -31,7 +35,9 @@ export function CreatorCategoryStrip({ selected, onToggle, className = "" }: Cre
             aria-pressed={active}
             onClick={() => onToggle(category.value)}
             className={`shrink-0 rounded-full border-2 border-black px-4 py-2 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black ${
-              active ? "bg-black text-white" : "bg-white text-black hover:bg-black/5"
+              active
+                ? "bg-black text-white"
+                : "bg-white text-black hover:bg-black/5"
             }`}
           >
             {category.label}

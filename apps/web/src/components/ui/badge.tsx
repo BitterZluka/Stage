@@ -1,14 +1,7 @@
 import type { ReactNode } from "react";
 
 export type BadgeColor =
-  | "cyan"
-  | "pink"
-  | "lavender"
-  | "mint"
-  | "yellow"
-  | "black"
-  | "white"
-  | "aqua";
+  "cyan" | "pink" | "lavender" | "mint" | "yellow" | "black" | "white" | "aqua";
 
 const COLOR_CLASSES: Record<BadgeColor, string> = {
   cyan: "bg-stage-cyan text-black",
@@ -27,7 +20,11 @@ export interface BadgeProps {
   className?: string;
 }
 
-export function Badge({ children, color = "cyan", className = "" }: BadgeProps) {
+export function Badge({
+  children,
+  color = "cyan",
+  className = "",
+}: BadgeProps) {
   return (
     <span
       className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border-2 border-black px-2.5 py-0.5 text-xs font-bold ${COLOR_CLASSES[color]} ${className}`}

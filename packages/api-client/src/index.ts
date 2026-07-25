@@ -7,5 +7,6 @@ export * from "./services/reward-service.js";
 export * from "./services/perk-service.js";
 export * from "./services/claim-service.js";
 export * from "./services/world-service.js";
+export * from "./services/catalog-service.js";
 export * from "./implementations/mocks.js";
 export * from "./implementations/api.js";

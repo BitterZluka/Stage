@@ -26,7 +26,12 @@ export function SearchIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
       <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-      <path d="M21 21l-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M21 21l-4.3-4.3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -224,7 +229,15 @@ export function ChevronDownIcon(props: IconProps) {
 export function GiftIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
-      <rect x="3" y="9" width="18" height="11" rx="1.5" stroke="currentColor" strokeWidth="2" />
+      <rect
+        x="3"
+        y="9"
+        width="18"
+        height="11"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
       <path d="M3 13h18M12 9v11" stroke="currentColor" strokeWidth="2" />
       <path
         d="M12 9c-1.5 0-4-1-4-3.2C8 4.2 9.2 3 10.5 3S12 5 12 6.5m0 2.5c1.5 0 4-1 4-3.2C16 4.2 14.8 3 13.5 3S12 5 12 6.5"

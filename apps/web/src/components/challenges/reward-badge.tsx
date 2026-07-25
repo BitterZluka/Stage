@@ -13,7 +13,9 @@ export function RewardBadge({ label, reward, tba = false }: RewardBadgeProps) {
       <span className="text-gray-500">{label}</span>
       <span className="flex items-center gap-1 font-bold">
         <ZapIcon size={12} />
-        {!tba && reward ? `${reward.amount.toLocaleString()} ${reward.token}` : "TBA"}
+        {!tba && reward
+          ? `${reward.amount.toLocaleString()} ${reward.token}`
+          : "TBA"}
       </span>
     </div>
   );

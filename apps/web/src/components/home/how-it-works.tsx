@@ -4,7 +4,10 @@ import { SurfaceCard } from "../ui/surface-card";
 export function HowItWorks() {
   return (
     <section aria-labelledby="how-it-works-heading" className="mt-16 sm:mt-20">
-      <h2 id="how-it-works-heading" className="font-display mb-6 text-2xl font-bold sm:text-3xl">
+      <h2
+        id="how-it-works-heading"
+        className="font-display mb-6 text-2xl font-bold sm:text-3xl"
+      >
         How STAGE Works
       </h2>
 
@@ -19,8 +22,12 @@ export function HowItWorks() {
               >
                 {index + 1}
               </div>
-              <h3 className="font-display mb-2 text-base font-bold">{step.title}</h3>
-              <p className="text-sm leading-relaxed text-gray-600">{step.description}</p>
+              <h3 className="font-display mb-2 text-base font-bold">
+                {step.title}
+              </h3>
+              <p className="text-sm leading-relaxed text-gray-600">
+                {step.description}
+              </p>
             </SurfaceCard>
           </li>
         ))}
