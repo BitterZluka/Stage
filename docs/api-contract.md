@@ -195,6 +195,11 @@ Response views do not contain another user's email, World proof/nullifier, signe
 
 ## Frontend services and mocks
 
-`apps/web` depends on `CatalogService` for public discovery reads and on `AuthService`, `CreatorService`, `ChallengeService`, `SubmissionService`, `RewardService`, `WorldService`, `PerkService`, and `ClaimService` for domain workflows. The `Api*Service` implementation calls the API. The catalog temporarily merges backend demo fixtures with public PostgreSQL records; authenticated mutations never write to those fixtures.
+`apps/web` depends on `CatalogService` for public discovery reads and on
+`AuthService`, `CreatorService`, `ChallengeService`, `SubmissionService`,
+`RewardService`, `WorldService`, `PerkService`, and `ClaimService` for domain
+workflows. The `Api*Service` implementation calls the API. Public catalog and
+authenticated workflow data come from PostgreSQL; deterministic service mocks
+remain available for isolated tests and local component development.
 
 **Temporary MVP solution:** poll `/operations/:id` every 2 seconds with backoff and stop after 60 seconds; after polling stops, the UI displays “processing continues,” not a transaction error.
