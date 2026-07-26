@@ -11,25 +11,19 @@ function emptyDatabase(): DatabaseService {
   } as unknown as DatabaseService;
 }
 
-test("catalog returns rich demo fixtures in a stable order", async () => {
+test("catalog returns empty results when the database is empty", async () => {
   const catalog = new CatalogService(emptyDatabase());
 
-  const first = await catalog.listChallenges();
-  const second = await catalog.listChallenges();
+  const challenges = await catalog.listChallenges();
   const creators = await catalog.listCreators();
   const perks = await catalog.listPerks();
 
-  assert.deepEqual(first, second);
-  assert.ok(first.items.length >= 10);
-  assert.ok(creators.items.length >= 9);
-  assert.ok(perks.items.length >= 12);
-  assert.equal(first.items[0]?.featured, true);
-  assert.equal(creators.items[0]?.featured, true);
-  assert.equal(perks.items[0]?.featured, true);
-  assert.ok(first.items.every(({ source }) => source === "demo"));
+  assert.deepEqual(challenges.items, []);
+  assert.deepEqual(creators.items, []);
+  assert.deepEqual(perks.items, []);
 });
 
-test("database records replace colliding demo records", async () => {
+test("catalog maps a persisted challenge to its public projection", async () => {
   const databaseChallenge = {
     id: "cover-art-single",
     creatorId: "database-creator",
@@ -62,17 +56,19 @@ test("database records replace colliding demo records", async () => {
   const catalog = new CatalogService(database);
 
   const { items } = await catalog.listChallenges();
-  const collisions = items.filter(({ id }) => id === "cover-art-single");
 
-  assert.equal(collisions.length, 1);
-  assert.equal(collisions[0]?.source, "database");
-  assert.equal(collisions[0]?.title, "Database title");
-  assert.equal(collisions[0]?.submissionCount, 4);
-  assert.equal(collisions[0]?.creatorTokenId, "0.0.456");
-  assert.equal(collisions[0]?.participationRewardAmount, "25");
+  assert.equal(items.length, 1);
+  assert.equal(items[0]?.id, "cover-art-single");
+  assert.equal(items[0]?.source, "database");
+  assert.equal(items[0]?.title, "Database title");
+  assert.equal(items[0]?.submissionCount, 4);
+  assert.equal(items[0]?.creatorTokenId, "0.0.456");
+  assert.equal(items[0]?.participationRewardAmount, "25");
+  assert.equal(items[0]?.rewardAmount, "999");
+  assert.equal(items[0]?.maxWinners, 2);
 });
 
-test("creator handles dedupe case-insensitively in favor of Prisma", async () => {
+test("catalog maps a persisted creator", async () => {
   const databaseCreator = {
     id: "persisted-lena",
     handle: "LenaMusic",
@@ -94,16 +90,14 @@ test("creator handles dedupe case-insensitively in favor of Prisma", async () =>
   const catalog = new CatalogService(database);
 
   const { items } = await catalog.listCreators();
-  const matching = items.filter(
-    ({ handle }) => handle.toLowerCase() === "lenamusic",
-  );
 
-  assert.equal(matching.length, 1);
-  assert.equal(matching[0]?.id, "persisted-lena");
-  assert.equal(matching[0]?.verified, true);
+  assert.equal(items.length, 1);
+  assert.equal(items[0]?.id, "persisted-lena");
+  assert.equal(items[0]?.verified, true);
+  assert.equal(items[0]?.source, "database");
 });
 
-test("perk filtering applies to Prisma and demo fixtures", async () => {
+test("perk filtering scopes the Prisma query by creator", async () => {
   let receivedWhere: unknown;
   const database = {
     creator: { findMany: async () => [] },
@@ -119,10 +113,7 @@ test("perk filtering applies to Prisma and demo fixtures", async () => {
 
   const { items } = await catalog.listPerks("nova-wave");
 
-  assert.deepEqual(
-    items.map(({ creatorId }) => creatorId),
-    ["nova-wave", "nova-wave"],
-  );
+  assert.deepEqual(items, []);
   assert.deepEqual(receivedWhere, {
     status: { in: ["ACTIVE", "PAUSED", "EXHAUSTED"] },
     creator: { status: "ACTIVE" },
@@ -130,14 +121,10 @@ test("perk filtering applies to Prisma and demo fixtures", async () => {
   });
 });
 
-test("creator profiles combine the creator's challenges and perks", async () => {
+test("getCreator returns null when there is no matching creator", async () => {
   const catalog = new CatalogService(emptyDatabase());
 
-  const profile = await catalog.getCreator("LenaMusic");
   const missing = await catalog.getCreator("does-not-exist");
 
-  assert.equal(profile?.creator.id, "lena-music");
-  assert.ok((profile?.challenges.length ?? 0) >= 2);
-  assert.ok((profile?.perks.length ?? 0) >= 3);
   assert.equal(missing, null);
 });
