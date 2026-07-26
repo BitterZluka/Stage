@@ -33,7 +33,7 @@ Chain column: `—` — none; `R` — Hedera/Mirror read; `W(outbox)` — write 
 | Area | Method / path | Request DTO → response | Auth / authz | Errors beyond common errors | Chain | Sync |
 |---|---|---|---|---|---|---|
 | Auth | `POST /auth/challenge` | `{ accountId: "0.0.x" \| "0x..." }` → `{ challengeId, message, expiresAt }` | Public; rate limit | `ACCOUNT_INVALID` | Mirror key read on session creation | sync |
-| Auth | `POST /auth/session` | `{ challengeId, signature }` → `SessionView` + httpOnly cookie | Public; one-time challenge | `LOGIN_CHALLENGE_INVALID`, `WALLET_ACCOUNT_NOT_FOUND`, `SIGNATURE_INVALID`, `SIGNATURE_VERIFICATION_UNAVAILABLE` | Mirror account-key/EVM address read | sync |
+| Auth | `POST /auth/session` | `{ challengeId, signature }` → `SessionView` + httpOnly cookie | Public; one-time challenge; existing creators idempotently reserve token provisioning | `LOGIN_CHALLENGE_INVALID`, `WALLET_ACCOUNT_NOT_FOUND`, `SIGNATURE_INVALID`, `SIGNATURE_VERIFICATION_UNAVAILABLE` | Mirror account-key/EVM address read + W(outbox) for an unprovisioned creator | sync session; token eventual |
 | Auth | `POST /auth/onboarding` | `{ intent: "fan" }` or `{ intent: "creator", handle, displayName }` → `SessionView` | User; only required for new accounts | `HANDLE_TAKEN` | — | sync |
 | Auth | `GET /auth/me` | — → `UserView` | User; self | — | — | sync |
 | Auth | `DELETE /auth/session` | — → `204` | User; self | — | — | sync |

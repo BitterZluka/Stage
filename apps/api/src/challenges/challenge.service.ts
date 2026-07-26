@@ -7,7 +7,7 @@ import {
   UnprocessableEntityException,
 } from "@nestjs/common";
 import { DatabaseService } from "../database/database.service.js";
-import { creatorTokenDefinition } from "../tokens/creator-token-policy.js";
+import { ensureCreatorTokenProvisioning } from "../tokens/creator-token-provisioning.js";
 import type {
   CreateChallengeDto,
   ListChallengesQuery,
@@ -118,38 +118,9 @@ export class ChallengeService {
   private async ensureCreatorTokenProvisioning(
     creatorId: string,
   ): Promise<void> {
-    const creator = await this.database.creator.findUnique({
-      where: { id: creatorId },
-      include: { token: true },
-    });
-    if (!creator || creator.token) return;
-    try {
-      await this.database.$transaction(async (transaction) => {
-        const token = await transaction.creatorToken.create({
-          data: {
-            creatorId,
-            ...creatorTokenDefinition(creator.handle, creator.displayName),
-          },
-        });
-        await transaction.outboxEvent.create({
-          data: {
-            idempotencyKey: `creator-token:${creatorId}`,
-            eventType: "CREATOR_TOKEN_CREATION_REQUESTED",
-            aggregateId: token.id,
-            payload: { creatorId, creatorTokenId: token.id },
-          },
-        });
-      });
-    } catch (error) {
-      if (
-        typeof error !== "object" ||
-        error === null ||
-        !("code" in error) ||
-        error.code !== "P2002"
-      ) {
-        throw error;
-      }
-    }
+    await this.database.$transaction((transaction) =>
+      ensureCreatorTokenProvisioning(transaction, creatorId),
+    );
   }
 
   private toView(challenge: {

@@ -18,8 +18,11 @@ It does not export SDK `Client`, transaction/receipt/key objects and has no know
 
 Creator onboarding reserves the creator-token row and a
 `CREATOR_TOKEN_CREATION_REQUESTED` outbox command in one database transaction.
-Creating or publishing a challenge performs the same idempotent provisioning
-check for creator profiles that existed before this workflow was introduced.
+Every subsequent creator login, plus challenge creation and publishing, performs
+the same idempotent provisioning check. A local token previously confirmed by
+`MockHederaProvider` is requeued with the same operation ID when the server is
+switched to `HEDERA_PROVIDER=real`; genuinely confirmed Hedera transactions are
+left unchanged.
 The worker calls `HederaProvider.createCreatorToken` and activates the token
 only after HTS confirms it. Challenge submissions and winner decisions
 similarly persist `PARTICIPATION` or `WINNER` reservations before the worker
@@ -43,6 +46,16 @@ When a challenge submission detects a missing relationship, the web app can
 build a `TokenAssociateTransaction` and ask the connected Hedera wallet to sign
 and execute it. The API still re-checks Mirror Node before accepting the
 submission; indexing can require a short retry delay after association.
+
+For MetaMask, the web app resolves the selected EVM address to the authenticated
+canonical Hedera account through Mirror Node, then sends the user-signed
+HRC-719 `associate()` call (`0x0a754de6`) directly to the HTS token facade.
+No platform key or custom smart contract is involved. The API still treats
+Mirror Node as the association authority before saving a submission.
+After Mirror confirms association, the same user action requests
+`wallet_watchAsset` with Mirror-verified symbol and decimals so MetaMask can
+display the token. Declining that optional display prompt does not undo or
+misreport the already-confirmed association.
 
 ## HCS
 

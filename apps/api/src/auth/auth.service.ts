@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 import { StageHederaError } from "@creator-platform/hedera";
 import { DatabaseService } from "../database/database.service.js";
-import { creatorTokenDefinition } from "../tokens/creator-token-policy.js";
+import { ensureCreatorTokenProvisioning } from "../tokens/creator-token-provisioning.js";
 import {
   buildWalletLoginMessage,
   randomOpaqueValue,
@@ -241,6 +241,12 @@ export class AuthService {
         },
         include: { user: { include: { wallets: true, creator: true } } },
       });
+      if (wallet.user.creator) {
+        await ensureCreatorTokenProvisioning(
+          transaction,
+          wallet.user.creator.id,
+        );
+      }
       await transaction.session.create({
         data: {
           userId: wallet.userId,
@@ -289,29 +295,9 @@ export class AuthService {
               ownerUserId: current.id,
               handle: input.handle,
               displayName: input.displayName,
-              token: {
-                create: creatorTokenDefinition(
-                  input.handle,
-                  input.displayName,
-                ),
-              },
-            },
-            include: { token: true },
-          });
-          if (!creator.token) {
-            throw new Error("Creator token reservation was not created");
-          }
-          await transaction.outboxEvent.create({
-            data: {
-              idempotencyKey: `creator-token:${creator.id}`,
-              eventType: "CREATOR_TOKEN_CREATION_REQUESTED",
-              aggregateId: creator.token.id,
-              payload: {
-                creatorId: creator.id,
-                creatorTokenId: creator.token.id,
-              },
             },
           });
+          await ensureCreatorTokenProvisioning(transaction, creator.id);
         }
         await transaction.user.update({
           where: { id: current.id },

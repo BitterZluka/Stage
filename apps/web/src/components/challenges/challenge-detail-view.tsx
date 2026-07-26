@@ -17,10 +17,8 @@ import {
   type HederaTokenId,
 } from "@creator-platform/shared";
 import { associateHederaToken } from "../../lib/hedera-wallet";
-import {
-  catalogService,
-  mapCatalogChallenge,
-} from "../../lib/catalog";
+import { associateMetaMaskToken } from "../../lib/metamask-wallet";
+import { catalogService, mapCatalogChallenge } from "../../lib/catalog";
 import { CheckIcon, ClockIcon, UsersIcon, ZapIcon } from "../icons";
 import { Badge, type BadgeColor } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -227,7 +225,7 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
     }
   }
 
-  async function associateRewardToken() {
+  async function associateRewardToken(wallet: "metamask" | "hedera") {
     if (!challenge?.creatorTokenId || !session) return;
     const accountId = session.user.accountIds.find((candidate) =>
       /^0\.0\.\d+$/.test(candidate),
@@ -239,13 +237,28 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
     setBusy(true);
     setError(null);
     try {
-      const transactionId = await associateHederaToken(
-        accountId as HederaAccountId,
-        challenge.creatorTokenId as HederaTokenId,
-      );
+      let transactionId: string;
+      let addedToWallet = false;
+      if (wallet === "metamask") {
+        const result = await associateMetaMaskToken(
+          accountId as HederaAccountId,
+          challenge.creatorTokenId as HederaTokenId,
+        );
+        transactionId = result.transactionHash;
+        addedToWallet = result.addedToWallet;
+      } else {
+        transactionId = await associateHederaToken(
+          accountId as HederaAccountId,
+          challenge.creatorTokenId as HederaTokenId,
+        );
+      }
       setAssociationRequired(false);
       setNotice(
-        `Token association submitted (${transactionId}). Wait a few seconds for Mirror Node, then submit again.`,
+        `Token association confirmed (${transactionId}). ${
+          wallet === "metamask" && addedToWallet
+            ? "The creator token was added to MetaMask. "
+            : ""
+        }You can now submit the entry again.`,
       );
     } catch (cause) {
       setError(
@@ -283,10 +296,10 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
         decision === "accept"
           ? { decision, expectedVersion: submission.version }
           : {
-            decision,
-            expectedVersion: submission.version,
-            reasonCode: "NOT_SELECTED",
-          },
+              decision,
+              expectedVersion: submission.version,
+              reasonCode: "NOT_SELECTED",
+            },
       );
       await loadChallenge();
       await loadSubmissions();
@@ -342,8 +355,9 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
                 key={item}
                 type="button"
                 onClick={() => setMode(item)}
-                className={`rounded-lg px-4 py-2 text-sm font-bold ${mode === item ? "bg-black text-white" : "hover:bg-black/5"
-                  }`}
+                className={`rounded-lg px-4 py-2 text-sm font-bold ${
+                  mode === item ? "bg-black text-white" : "hover:bg-black/5"
+                }`}
               >
                 {item === "creator" ? "Creator view" : "Fan preview"}
               </button>
@@ -532,15 +546,33 @@ export function ChallengeDetailView({ challengeId }: { challengeId: string }) {
                     {busy ? "Submitting…" : "Submit entry"}
                   </Button>
                   {associationRequired && challenge.creatorTokenId && (
-                    <Button
-                      type="button"
-                      variant="mint"
-                      size="lg"
-                      disabled={busy}
-                      onClick={() => void associateRewardToken()}
-                    >
-                      Associate reward token
-                    </Button>
+                    <div className="space-y-3 rounded-2xl border-2 border-black bg-stage-yellow/40 p-4">
+                      <p className="text-sm font-semibold">
+                        Associate the reward token using the same wallet account
+                        that is logged in to STAGE. The entry is saved after
+                        Mirror Node confirms the association.
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        <Button
+                          type="button"
+                          variant="mint"
+                          size="lg"
+                          disabled={busy}
+                          onClick={() => void associateRewardToken("metamask")}
+                        >
+                          Associate with MetaMask
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="lg"
+                          disabled={busy}
+                          onClick={() => void associateRewardToken("hedera")}
+                        >
+                          Use Hedera WalletConnect
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </form>
               )}

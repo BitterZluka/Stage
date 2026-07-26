@@ -38,6 +38,10 @@ audit history; creators cancel those challenges instead of deleting them.
 `FAN` and `CREATOR` are onboarding intents, not exclusive authorization roles.
 Every user may participate as a fan. Creator capabilities are granted by an
 optional one-to-one `Creator` profile, so a fan may become a creator later.
+Creator onboarding and each later creator login idempotently ensure that the
+creator-token reservation and its stable outbox command exist. Login never
+performs the Hedera write directly; the worker activates the token after
+network confirmation.
 
 ## Identifiers and money
 

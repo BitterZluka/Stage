@@ -41,8 +41,11 @@ function challenge(overrides: Record<string, unknown> = {}) {
 }
 
 test("createLoginChallenge normalizes EVM identity and invalidates older challenges", async () => {
-  const writes: Array<{ accountId: string; message: string; nonceHash: string }> =
-    [];
+  const writes: Array<{
+    accountId: string;
+    message: string;
+    nonceHash: string;
+  }> = [];
   let invalidatedAccountId: string | undefined;
   const transaction = {
     loginChallenge: {
@@ -189,6 +192,90 @@ test("createSession consumes once and stores only the session token hash", async
   assert.equal(result.view.user.onboardingRequired, true);
 });
 
+test("createSession idempotently provisions a token for an existing creator", async () => {
+  const user = {
+    id: "user-1",
+    primaryIntent: "CREATOR" as const,
+    onboardingCompletedAt: new Date(),
+    wallets: [{ accountId: "0.0.123" }],
+    creator: { id: "creator-1" },
+  };
+  let token:
+    | {
+        id: string;
+        creatorId: string;
+        status: string;
+        hederaTokenId: string | null;
+      }
+    | undefined;
+  const outboxEvents = new Map<string, { aggregateId: string }>();
+  const transaction = {
+    loginChallenge: { updateMany: async () => ({ count: 1 }) },
+    wallet: {
+      upsert: async () => ({ userId: user.id, user }),
+    },
+    creator: {
+      findUnique: async () => ({
+        id: user.creator.id,
+        handle: "creator",
+        displayName: "Creator",
+      }),
+    },
+    creatorToken: {
+      upsert: async (query: {
+        create: { creatorId: string; status: string };
+      }) => {
+        token ??= {
+          id: "creator-token-1",
+          creatorId: query.create.creatorId,
+          status: query.create.status,
+          hederaTokenId: null,
+        };
+        return token;
+      },
+    },
+    outboxEvent: {
+      upsert: async (query: {
+        where: { idempotencyKey: string };
+        create: { aggregateId: string };
+      }) => {
+        if (!outboxEvents.has(query.where.idempotencyKey)) {
+          outboxEvents.set(query.where.idempotencyKey, {
+            aggregateId: query.create.aggregateId,
+          });
+        }
+      },
+    },
+    session: { create: async () => undefined },
+  };
+  const database = {
+    loginChallenge: {
+      findUnique: async () => challenge(),
+      update: async () => challenge({ attempts: 1 }),
+    },
+    $transaction: async (
+      callback: (tx: typeof transaction) => Promise<unknown>,
+    ) => callback(transaction),
+  } as unknown as DatabaseService;
+  const service = new AuthService(database, verifier());
+
+  await service.createSession({
+    challengeId: "challenge-1",
+    signature: "valid-signature",
+  });
+  await service.createSession({
+    challengeId: "challenge-2",
+    signature: "valid-signature",
+  });
+
+  assert.equal(token?.creatorId, "creator-1");
+  assert.equal(outboxEvents.size, 1);
+  assert.equal(
+    outboxEvents.get("creator-token:creator-1")?.aggregateId,
+    "creator-token-1",
+  );
+});
+
 test("createSession rejects a concurrent second challenge consume", async () => {
   const transaction = {
     loginChallenge: { updateMany: async () => ({ count: 0 }) },
@@ -278,7 +365,6 @@ test("completeOnboarding maps creator handle uniqueness to HANDLE_TAKEN", async 
       displayName: "Taken Creator",
     }),
     (error: unknown) =>
-      error instanceof ConflictException &&
-      errorCode(error) === "HANDLE_TAKEN",
+      error instanceof ConflictException && errorCode(error) === "HANDLE_TAKEN",
   );
 });
