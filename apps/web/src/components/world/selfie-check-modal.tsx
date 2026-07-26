@@ -30,7 +30,6 @@ export function SelfieCheckModal({
       action={request.action}
       rp_context={request.rp_context}
       allow_legacy_proofs={request.allow_legacy_proofs}
-      require_user_presence={request.require_user_presence}
       environment={request.environment}
       preset={selfieCheckLegacy({ signal: request.preset.signal })}
       handleVerify={onVerify}

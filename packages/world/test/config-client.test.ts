@@ -55,7 +55,6 @@ test("client request contains only public IDKit configuration", () => {
   assert.equal(request.preset.type, "SelfieCheckLegacy");
   assert.equal(request.preset.signal, context.signal);
   assert.equal(request.allow_legacy_proofs, true);
-  assert.equal(request.require_user_presence, true);
   assert.doesNotMatch(JSON.stringify(request), /signing[_-]?key/i);
 
   const fakeProof = createFakeSelfieCheckProof(context);

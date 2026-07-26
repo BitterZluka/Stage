@@ -142,6 +142,8 @@ export function SelfieCheckButton({
                 throw new Error("Backend did not confirm World verification");
               }
             } catch (error) {
+              // eslint-disable-next-line no-console
+              console.warn("World Selfie Check backend rejection:", error);
               setState(backendErrorState(error));
               throw error;
             }
@@ -152,6 +154,8 @@ export function SelfieCheckButton({
             onVerified?.();
           }}
           onError={(code) => {
+            // eslint-disable-next-line no-console
+            console.warn("World Selfie Check IDKit error code:", code);
             setState(worldClientErrorState(code));
           }}
         />

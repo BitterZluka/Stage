@@ -20,7 +20,6 @@ const proof = {
       nullifier: "0x00ABCDEF",
     },
   ],
-  user_presence_completed: true,
   environment: "staging",
 };
 

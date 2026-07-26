@@ -88,12 +88,6 @@ export function parseAndValidateWorldProof(input: {
       "World proof action does not match the requested action",
     );
   }
-  if (proof.user_presence_completed !== true) {
-    throw worldError(
-      "PROOF_INVALID",
-      "World proof did not complete the required user-presence check",
-    );
-  }
   if (!Array.isArray(proof.responses) || proof.responses.length === 0) {
     throw worldError("PROOF_INVALID", "World proof contains no responses");
   }

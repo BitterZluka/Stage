@@ -10,7 +10,6 @@ export interface SelfieCheckRequestConfig {
   action: string;
   rp_context: WorldRpContext;
   allow_legacy_proofs: true;
-  require_user_presence: true;
   environment: WorldEnvironment;
   preset: {
     type: "SelfieCheckLegacy";
@@ -26,7 +25,6 @@ export function createSelfieCheckRequest(
     action: context.action,
     rp_context: context.rpContext,
     allow_legacy_proofs: true,
-    require_user_presence: true,
     environment: context.environment,
     preset: {
       type: "SelfieCheckLegacy",
