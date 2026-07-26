@@ -6,7 +6,7 @@ export type ButtonVariant =
 export type ButtonSize = "sm" | "md" | "lg";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-black text-white border-black",
+  primary: "bg-[#e5e7eb] text-black border-black",
   holo: "text-black border-black bg-gradient-to-br from-stage-cyan via-stage-pink to-stage-lavender",
   cyan: "bg-stage-cyan text-black border-black",
   pink: "bg-stage-pink text-black border-black",
@@ -16,13 +16,13 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: "text-sm px-4 py-2 gap-1.5",
-  md: "text-sm px-5 py-2.5 gap-2",
-  lg: "text-base px-7 py-3.5 gap-2",
+  sm: "text-base px-5 py-2.5 gap-1.5",
+  md: "text-base px-6 py-3 gap-2",
+  lg: "text-lg px-8 py-4 gap-2",
 };
 
 const BASE_CLASSES =
-  "inline-flex items-center justify-center rounded-xl border-2 font-bold shadow-offset transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black";
+  "inline-flex items-center justify-center rounded-xl border border-black/80 font-bold shadow-[2px_2px_0_0_rgba(0,0,0,0.9)] transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black";
 
 interface CommonProps {
   children: ReactNode;

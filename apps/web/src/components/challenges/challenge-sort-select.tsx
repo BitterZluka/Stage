@@ -32,7 +32,7 @@ export function ChallengeSortSelect({
         onChange={(event: ChangeEvent<HTMLSelectElement>) =>
           onChange(event.target.value as SortOption)
         }
-        className="w-full appearance-none rounded-xl border-2 border-black bg-white py-3 pr-9 pl-4 text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+        className="w-full appearance-none rounded-xl border-2 border-black bg-white py-4 pr-10 pl-5 text-base font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
       >
         {SORT_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
@@ -41,8 +41,8 @@ export function ChallengeSortSelect({
         ))}
       </select>
       <ChevronDownIcon
-        size={14}
-        className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-black/60"
+        size={16}
+        className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-black/60"
       />
     </div>
   );

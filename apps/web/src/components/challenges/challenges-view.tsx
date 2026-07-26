@@ -142,9 +142,9 @@ export function ChallengesView() {
             type="button"
             onClick={() => setMobileFiltersOpen(true)}
             aria-haspopup="dialog"
-            className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-4 py-3 text-sm font-bold hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black lg:hidden"
+            className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-5 py-4 text-base font-bold hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black lg:hidden"
           >
-            <FilterIcon size={15} />
+            <FilterIcon size={18} />
             Filters
             {activeFilterCount > 0 && (
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black text-xs text-white">
@@ -156,14 +156,14 @@ export function ChallengesView() {
           <ChallengeSortSelect
             value={sort}
             onChange={handleSortChange}
-            className="min-w-[170px]"
+            className="min-w-[190px]"
           />
 
           {hasActiveFilters && (
             <button
               type="button"
               onClick={clearAll}
-              className="hidden rounded px-2 py-1 text-sm font-bold text-black/60 underline decoration-2 underline-offset-2 hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black sm:inline-block"
+              className="hidden rounded px-3 py-2 text-base font-bold text-black/60 underline decoration-2 underline-offset-2 hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black sm:inline-block"
             >
               Clear filters
             </button>

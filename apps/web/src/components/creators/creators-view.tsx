@@ -16,13 +16,8 @@ import { CreatorSearch } from "./creator-search";
 import { CreatorSortSelect } from "./creator-sort-select";
 import { CreatorsEmptyState } from "./creators-empty-state";
 import { CreatorsErrorState } from "./creators-error-state";
-import {
-  CreatorFiltersSkeleton,
-  CreatorsGridSkeleton,
-  FeaturedCreatorSkeleton,
-} from "./creators-skeleton";
+import { CreatorFiltersSkeleton, CreatorsGridSkeleton } from "./creators-skeleton";
 import { CreatorsHero } from "./creators-hero";
-import { FeaturedCreatorCard } from "./featured-creator-card";
 import { countActiveFilters, matchesCreatorFilters } from "./filter";
 import { type CreatorSortOption, sortCreators } from "./sort";
 
@@ -80,21 +75,12 @@ export function CreatorsView() {
   const hasActiveQuery = searchQuery.trim().length > 0;
   const hasActiveFilters = hasActiveQuery || activeFilterCount > 0;
 
-  const featured = useMemo(
-    () =>
-      hasActiveFilters ? undefined : creators.find((item) => item.featured),
-    [creators, hasActiveFilters],
-  );
-
   const results = useMemo(() => {
     const matched = creators.filter((item) =>
       matchesCreatorFilters(item, searchQuery, filters),
     );
-    const withoutFeatured = featured
-      ? matched.filter((item) => item.id !== featured.id)
-      : matched;
-    return sortCreators(withoutFeatured, sort);
-  }, [creators, searchQuery, filters, featured, sort]);
+    return sortCreators(matched, sort);
+  }, [creators, searchQuery, filters, sort]);
 
   const visibleResults = results.slice(0, visibleCount);
   const canLoadMore = visibleResults.length < results.length;
@@ -169,9 +155,9 @@ export function CreatorsView() {
             type="button"
             onClick={() => setMobileFiltersOpen(true)}
             aria-haspopup="dialog"
-            className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-4 py-3 text-sm font-bold hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black lg:hidden"
+            className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-5 py-4 text-base font-bold hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black lg:hidden"
           >
-            <FilterIcon size={15} />
+            <FilterIcon size={18} />
             Filters
             {activeFilterCount > 0 && (
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black text-xs text-white">
@@ -183,14 +169,14 @@ export function CreatorsView() {
           <CreatorSortSelect
             value={sort}
             onChange={handleSortChange}
-            className="min-w-[190px]"
+            className="min-w-[210px]"
           />
 
           {hasActiveFilters && (
             <button
               type="button"
               onClick={clearAll}
-              className="hidden rounded px-2 py-1 text-sm font-bold text-black/60 underline decoration-2 underline-offset-2 hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black sm:inline-block"
+              className="hidden rounded px-3 py-2 text-base font-bold text-black/60 underline decoration-2 underline-offset-2 hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black sm:inline-block"
             >
               Clear filters
             </button>
@@ -219,29 +205,12 @@ export function CreatorsView() {
 
           {!error && loading && (
             <div className="space-y-8">
-              <FeaturedCreatorSkeleton />
               <CreatorsGridSkeleton />
             </div>
           )}
 
           {!error && !loading && (
             <>
-              {featured && (
-                <section
-                  aria-labelledby="featured-creator-heading"
-                  className="mb-10"
-                >
-                  <h2 id="featured-creator-heading" className="sr-only">
-                    Featured creator
-                  </h2>
-                  <FeaturedCreatorCard
-                    creator={featured}
-                    following={followedIds.has(featured.id)}
-                    onToggleFollow={toggleFollow}
-                  />
-                </section>
-              )}
-
               <section aria-labelledby="creator-results-heading">
                 <h2
                   id="creator-results-heading"
