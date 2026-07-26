@@ -54,7 +54,7 @@ export function Hero() {
             Discover creators, join challenges, submit your work, earn credits,
             and unlock exclusive perks.
           </p>
-          <Button href="/explore" variant="cyan" size="md">
+          <Button href="/creators" variant="cyan" size="md">
             Explore as a fan
           </Button>
         </SurfaceCard>

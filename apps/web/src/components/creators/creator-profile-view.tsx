@@ -24,7 +24,6 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { SurfaceCard } from "../ui/surface-card";
 import { CreatorCategoryBadge } from "./creator-category-badge";
-import { CreatorVerifiedBadge } from "./creator-verified-badge";
 import { FollowButton } from "./follow-button";
 import { formatFollowerCount } from "./format";
 
@@ -329,7 +328,6 @@ function ProfileHero({
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <CreatorCategoryBadge category={creator.category} />
-              {creator.verified && <CreatorVerifiedBadge />}
               {creator.trending && (
                 <Badge color="yellow">
                   <FlameIcon size={12} /> Trending

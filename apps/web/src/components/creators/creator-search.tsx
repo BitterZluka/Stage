@@ -18,8 +18,8 @@ export function CreatorSearch({
         Search creators
       </label>
       <SearchIcon
-        size={16}
-        className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-black/50"
+        size={18}
+        className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-black/50"
       />
       <input
         id="creator-search"
@@ -29,7 +29,7 @@ export function CreatorSearch({
           onChange(event.target.value)
         }
         placeholder="Search creators, categories, tokens..."
-        className="w-full rounded-xl border-2 border-black py-3 pr-4 pl-10 text-sm placeholder:text-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+        className="w-full rounded-xl border-2 border-black py-4 pr-5 pl-12 text-base placeholder:text-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
       />
     </div>
   );

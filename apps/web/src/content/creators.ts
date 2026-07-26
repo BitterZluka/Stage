@@ -28,12 +28,6 @@ export type ActivityFilter =
   "active-challenges" | "perks-available" | "recently-active";
 export type CommunitySize = "emerging" | "growing" | "established";
 
-export interface CreatorHighlight {
-  kind: "challenge" | "perk";
-  title: string;
-  detail: string;
-}
-
 export interface DiscoverCreator {
   id: string;
   slug: string;
@@ -53,7 +47,6 @@ export interface DiscoverCreator {
   trending?: boolean;
   recentlyActive?: boolean;
   createdAt: string;
-  highlight?: CreatorHighlight;
 }
 
 /** Follower-count bucketing used by the "Community size" filter group. */
@@ -78,15 +71,9 @@ export const DISCOVER_CREATORS: DiscoverCreator[] = [
     followersCount: 24_800,
     activeChallengesCount: 2,
     perksCount: 5,
-    featured: true,
     trending: true,
     recentlyActive: true,
     createdAt: "2025-02-11T00:00:00.000Z",
-    highlight: {
-      kind: "challenge",
-      title: "Design the cover for my next single",
-      detail: "312 submissions · Ends in 2 days",
-    },
   },
   {
     id: "nova-wave",

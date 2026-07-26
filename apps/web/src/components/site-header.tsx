@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -66,15 +66,16 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+          className="flex shrink-0 items-center rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
         >
-          <span
-            className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-black bg-gradient-to-br from-stage-cyan to-stage-pink font-display text-sm font-bold shadow-offset"
-            aria-hidden="true"
-          >
-            S
-          </span>
-          <span className="font-display text-xl font-bold">STAGE</span>
+          <Image
+            src="/brand/IMG_0973.PNG"
+            alt="STAGE"
+            width={480}
+            height={160}
+            className="h-16 w-auto sm:h-18 md:h-20"
+            priority
+          />
         </Link>
 
         <nav
@@ -92,7 +93,7 @@ export function SiteHeader() {
                   ? "page"
                   : undefined
               }
-              className="rounded-xl border-2 border-transparent px-4 py-2 text-sm font-bold transition-colors hover:border-black hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black aria-[current=page]:border-black aria-[current=page]:bg-black aria-[current=page]:text-white"
+              className="rounded-xl border-2 border-transparent px-6 py-4 text-lg font-bold leading-none transition-colors hover:border-black hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black aria-[current=page]:border-black aria-[current=page]:bg-black aria-[current=page]:text-white"
             >
               {link.label}
             </Link>
@@ -103,7 +104,7 @@ export function SiteHeader() {
           <Button
             variant="primary"
             size="sm"
-            className="hidden sm:inline-flex"
+            className="hidden sm:inline-flex rounded-full !border-[#2f3437] !bg-[#2f3437] px-6 py-3 text-lg font-black tracking-wide text-white shadow-[2px_2px_0_0_rgba(47,52,55,0.25)]"
             onClick={handleAuthAction}
             disabled={loading}
           >
@@ -119,11 +120,10 @@ export function SiteHeader() {
             aria-controls="mobile-nav"
             className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-black transition-colors hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black md:hidden"
           >
-            <MenuIcon size={18} />
+            <MenuIcon size={25} />
           </button>
         </div>
       </div>
-
       {mobileOpen && (
         <div
           id="mobile-nav"
@@ -157,7 +157,7 @@ export function SiteHeader() {
                 ref={index === 0 ? firstMobileLinkRef : undefined}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="rounded-xl border-2 border-black px-5 py-4 text-base font-bold shadow-offset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+                className="rounded-xl border-2 border-black px-6 py-4 text-lg font-bold leading-none shadow-offset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
               >
                 {link.label}
               </Link>

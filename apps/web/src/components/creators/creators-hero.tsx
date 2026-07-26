@@ -16,10 +16,6 @@ export function CreatorsHero() {
         aria-hidden="true"
       />
 
-      <div className="relative z-10 max-w-2xl">
-        <span className="mb-4 inline-block rounded-full border-2 border-black bg-white px-3 py-1 text-xs font-bold tracking-wide uppercase shadow-offset">
-          Discover creator communities
-        </span>
         <h1 className="font-display mb-4 text-3xl leading-[1.1] font-bold sm:text-4xl lg:text-5xl">
           Find creators{" "}
           <span className="text-holo-gradient">worth following</span>
@@ -29,7 +25,7 @@ export function CreatorsHero() {
           communities. Join their challenges, earn community credits, and unlock
           exclusive perks.
         </p>
-      </div>
+     
     </section>
   );
 }

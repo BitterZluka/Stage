@@ -7,28 +7,6 @@ function SkeletonBlock({ className = "" }: { className?: string }) {
   );
 }
 
-export function FeaturedCreatorSkeleton() {
-  return (
-    <div className="grid grid-cols-1 overflow-hidden rounded-2xl border-2 border-black lg:grid-cols-2">
-      <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 p-6">
-        <SkeletonBlock className="h-20 w-20 rounded-full" />
-        <SkeletonBlock className="h-5 w-32" />
-        <SkeletonBlock className="h-4 w-24" />
-      </div>
-      <div className="space-y-3 p-8">
-        <SkeletonBlock className="h-4 w-full" />
-        <SkeletonBlock className="h-4 w-2/3" />
-        <SkeletonBlock className="h-4 w-1/2" />
-        <SkeletonBlock className="h-16 w-full" />
-        <div className="flex gap-3">
-          <SkeletonBlock className="h-10 w-28" />
-          <SkeletonBlock className="h-10 w-32" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function CreatorCardSkeleton() {
   return (
     <div className="overflow-hidden rounded-2xl border-2 border-black">

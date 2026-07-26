@@ -37,7 +37,6 @@ interface ChallengeFormValue {
   participationRewardAmount: string;
   rewardAmount: string;
   maxWinners: number;
-  participationTokenAmount: string;
 }
 
 const STATUS_FILTERS: { value: ChallengeFilter; label: string }[] = [
@@ -191,8 +190,7 @@ export function ChallengeManager() {
             value.participationRewardAmount as TokenAmount,
           rewardAmount: value.rewardAmount as TokenAmount,
           maxWinners: value.maxWinners,
-          participationTokenAmount:
-            value.participationTokenAmount as TokenAmount,
+          participationTokenAmount: "0" as TokenAmount,
         });
         setChallenges((current) => [created, ...current]);
       } else if (editor) {
@@ -205,8 +203,7 @@ export function ChallengeManager() {
             value.participationRewardAmount as TokenAmount,
           rewardAmount: value.rewardAmount as TokenAmount,
           maxWinners: value.maxWinners,
-          participationTokenAmount:
-            value.participationTokenAmount as TokenAmount,
+          participationTokenAmount: "0" as TokenAmount,
           expectedVersion: editor.version,
         });
         replaceChallenge(updated);
@@ -501,16 +498,6 @@ function ManagedChallengeCard({
           </div>
           <div className="col-span-2">
             <dt className="text-xs font-bold text-gray-500 uppercase">
-              Participation requirement
-            </dt>
-            <dd className="mt-1 font-bold">
-              {challenge.participationTokenAmount === "0"
-                ? "No token minimum"
-                : `${challenge.participationTokenAmount} creator tokens`}
-            </dd>
-          </div>
-          <div className="col-span-2">
-            <dt className="text-xs font-bold text-gray-500 uppercase">
               Submission deadline
             </dt>
             <dd className="mt-1 font-bold">
@@ -638,9 +625,6 @@ function ChallengeEditor({
   const [maxWinners, setMaxWinners] = useState(
     String(challenge?.maxWinners ?? 1),
   );
-  const [participationTokenAmount, setParticipationTokenAmount] = useState(
-    challenge?.participationTokenAmount ?? "0",
-  );
   const [formError, setFormError] = useState<string | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -668,7 +652,6 @@ function ChallengeEditor({
         participationRewardAmount,
         rewardAmount: winnerRewardEnabled ? rewardAmount : "0",
         maxWinners: winnerRewardEnabled ? Number(maxWinners) : 0,
-        participationTokenAmount,
       });
     } catch (cause) {
       setFormError(errorMessage(cause));
@@ -734,47 +717,27 @@ function ChallengeEditor({
             />
           </label>
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <label className="grid gap-1.5 text-sm font-bold">
-              Submission format
-              <select
-                value={submissionKind}
-                disabled={challenge !== null}
-                onChange={(event) =>
-                  setSubmissionKind(event.target.value as SubmissionKind)
-                }
-                className="rounded-xl border-2 border-black bg-white px-4 py-3 font-normal disabled:bg-gray-100"
-              >
-                <option value="image">Image</option>
-                <option value="video">Video</option>
-                <option value="text">Text</option>
-                <option value="link">Link</option>
-              </select>
-              {challenge && (
-                <span className="text-xs font-normal text-gray-500">
-                  Submission format cannot change after draft creation.
-                </span>
-              )}
-            </label>
-
-            <label className="grid gap-1.5 text-sm font-bold">
-              Tokens required to participate
-              <input
-                required
-                inputMode="numeric"
-                pattern="0|[1-9][0-9]*"
-                value={participationTokenAmount}
-                onChange={(event) =>
-                  setParticipationTokenAmount(event.target.value)
-                }
-                className="rounded-xl border-2 border-black px-4 py-3 font-normal"
-              />
+          <label className="grid gap-1.5 text-sm font-bold">
+            Submission format
+            <select
+              value={submissionKind}
+              disabled={challenge !== null}
+              onChange={(event) =>
+                setSubmissionKind(event.target.value as SubmissionKind)
+              }
+              className="rounded-xl border-2 border-black bg-white px-4 py-3 font-normal disabled:bg-gray-100"
+            >
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+              <option value="text">Text</option>
+              <option value="link">Link</option>
+            </select>
+            {challenge && (
               <span className="text-xs font-normal text-gray-500">
-                Use 0 for open participation. This is an entry requirement, not
-                a payment.
+                Submission format cannot change after draft creation.
               </span>
-            </label>
-          </div>
+            )}
+          </label>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="grid gap-1.5 text-sm font-bold">
