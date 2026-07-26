@@ -3,7 +3,8 @@ import type {
   ChallengeId,
   Claim,
   ClaimId,
-  CreateClaimInput,
+  ConfirmPerkPurchaseInput,
+  CreatePerkPurchaseInput,
   CreateChallengeInput,
   CreateCreatorInput,
   CreatePerkInput,
@@ -15,6 +16,8 @@ import type {
   PageRequest,
   Perk,
   PerkId,
+  PerkPurchaseId,
+  PerkPurchaseIntent,
   RewardPayout,
   SubmissionId,
   UpdateChallengeInput,
@@ -27,8 +30,12 @@ import type {
 import {
   ChallengeStatus,
   ClaimStatus,
+  PerkPurchaseStatus,
   PerkStatus,
+  type HederaAccountId,
+  type HederaTokenId,
   type IsoTimestamp,
+  type TokenAmount,
 } from "@creator-platform/shared";
 import type { ChallengeService } from "../services/challenge-service.js";
 import type { ClaimService } from "../services/claim-service.js";
@@ -184,6 +191,19 @@ export class MockRewardService implements RewardService {
 export class MockPerkService implements PerkService {
   constructor(private readonly perks: Perk[] = []) {}
 
+  async listMyPerks(
+    filters?: Partial<PageRequest> & {
+      status?: Perk["status"];
+    },
+  ): Promise<Page<Perk>> {
+    return pageOf(
+      this.perks.filter(
+        (perk) => !filters?.status || perk.status === filters.status,
+      ),
+      filters,
+    );
+  }
+
   async listCreatorPerks(
     creatorId: CreatorId,
     page?: Partial<PageRequest>,
@@ -231,6 +251,20 @@ export class MockPerkService implements PerkService {
     return this.withStatus(perkId, PerkStatus.Active);
   }
 
+  async deletePerk(perkId: PerkId, expectedVersion: number): Promise<void> {
+    const index = this.perks.findIndex((perk) => perk.id === perkId);
+    if (index < 0) throw new Error("Perk not found");
+    const perk = this.perks[index];
+    if (
+      !perk ||
+      perk.status !== PerkStatus.Draft ||
+      perk.version !== expectedVersion
+    ) {
+      throw new Error("Only the current draft perk can be deleted");
+    }
+    this.perks.splice(index, 1);
+  }
+
   private async requirePerk(perkId: PerkId): Promise<Perk> {
     const perk = await this.getPerk(perkId);
     if (!perk) throw new Error("Perk not found");
@@ -248,12 +282,34 @@ export class MockPerkService implements PerkService {
 export class MockClaimService implements ClaimService {
   constructor(private readonly claims: Claim[] = []) {}
 
-  async createClaim(
+  async createPurchaseIntent(
     perkId: PerkId,
-    _input: CreateClaimInput = {},
+    input: CreatePerkPurchaseInput = {},
+  ): Promise<PerkPurchaseIntent> {
+    const now = new Date();
+    return {
+      id: `purchase-${perkId}` as PerkPurchaseId,
+      perkId,
+      status: PerkPurchaseStatus.Pending,
+      accountId: input.accountId ?? ("0.0.123" as HederaAccountId),
+      tokenId: "0.0.456" as HederaTokenId,
+      destinationAccountId: "0.0.789",
+      amount: "25" as TokenAmount,
+      expiresAt: new Date(
+        now.getTime() + 15 * 60_000,
+      ).toISOString() as IsoTimestamp,
+      createdAt: now.toISOString() as IsoTimestamp,
+      updatedAt: now.toISOString() as IsoTimestamp,
+    };
+  }
+
+  async confirmPurchase(
+    _purchaseId: PerkPurchaseId,
+    _input: ConfirmPerkPurchaseInput,
   ): Promise<Claim> {
+    void _purchaseId;
     void _input;
-    const existing = this.claims.find((claim) => claim.perkId === perkId);
+    const existing = this.claims[0];
     if (existing) return existing;
     throw new Error("TODO: inject a deterministic claimant fixture");
   }

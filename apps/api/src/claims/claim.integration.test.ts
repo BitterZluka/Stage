@@ -5,6 +5,7 @@ import { DatabaseService } from "../database/database.service.js";
 import { PerkService } from "../perks/perk.service.js";
 import { ClaimService } from "./claim.service.js";
 import type { TokenBalanceReader } from "../token-balances/token-balance-reader.js";
+import type { TokenPaymentReader } from "../token-balances/token-payment-reader.js";
 
 const runDatabaseTests = process.env.RUN_DATABASE_INTEGRATION_TESTS === "1";
 
@@ -14,13 +15,26 @@ class EligibleBalanceReader implements TokenBalanceReader {
   }
 }
 
+class ConfirmedPaymentReader implements TokenPaymentReader {
+  async verify() {
+    return {
+      status: "confirmed" as const,
+      consensusTimestamp: "1784992342.000000000",
+    };
+  }
+}
+
 test(
   "token-gated perk reserves one final slot and supports manual fulfillment",
   { skip: !runDatabaseTests, timeout: 30_000 },
   async () => {
     const database = new DatabaseService();
     const perks = new PerkService(database);
-    const claims = new ClaimService(database, new EligibleBalanceReader());
+    const claims = new ClaimService(
+      database,
+      new EligibleBalanceReader(),
+      new ConfirmedPaymentReader(),
+    );
     const suffix = randomUUID().slice(0, 8);
     const accountBase = Date.now();
     const userIds: string[] = [];
@@ -29,6 +43,7 @@ test(
 
     await database.$connect();
     try {
+      process.env.HEDERA_TREASURY_ACCOUNT_ID ??= "0.0.9701476";
       const creatorUser = await database.user.create({ data: {} });
       const fanOne = await database.user.create({ data: {} });
       const fanTwo = await database.user.create({ data: {} });
@@ -99,29 +114,39 @@ test(
       await perks.transition(perk.id, creatorUser.id, "activate", 1);
 
       await assert.rejects(() =>
-        claims.create(perk.id, fanOne.id, {
+        claims.createPurchaseIntent(perk.id, fanOne.id, {
           accountId: `0.0.${accountBase + 1}`,
         }),
       );
       await assert.rejects(() =>
-        new ClaimService(database, {
-          async getTokenBalance() {
-            return { associated: false, balance: 0n };
+        new ClaimService(
+          database,
+          {
+            async getTokenBalance() {
+              return { associated: false, balance: 0n };
+            },
           },
-        }).create(perk.id, fanOne.id, {}),
+          new ConfirmedPaymentReader(),
+        ).createPurchaseIntent(perk.id, fanOne.id, {}),
       );
       await assert.rejects(() =>
-        new ClaimService(database, {
-          async getTokenBalance() {
-            return { associated: true, balance: 99n };
+        new ClaimService(
+          database,
+          {
+            async getTokenBalance() {
+              return { associated: true, balance: 99n };
+            },
           },
-        }).create(perk.id, fanOne.id, {}),
+          new ConfirmedPaymentReader(),
+        ).createPurchaseIntent(perk.id, fanOne.id, {}),
       );
-      await assert.rejects(() => claims.create(perk.id, unverifiedFan.id, {}));
+      await assert.rejects(() =>
+        claims.createPurchaseIntent(perk.id, unverifiedFan.id, {}),
+      );
 
       const results = await Promise.allSettled([
-        claims.create(perk.id, fanOne.id, {}),
-        claims.create(perk.id, fanTwo.id, {}),
+        claims.createPurchaseIntent(perk.id, fanOne.id, {}),
+        claims.createPurchaseIntent(perk.id, fanTwo.id, {}),
       ]);
       assert.equal(
         results.filter((result) => result.status === "fulfilled").length,
@@ -131,10 +156,20 @@ test(
         (
           result,
         ): result is PromiseFulfilledResult<
-          Awaited<ReturnType<ClaimService["create"]>>
+          Awaited<ReturnType<ClaimService["createPurchaseIntent"]>>
         > => result.status === "fulfilled",
       )?.value;
       assert.ok(winner);
+      const winnerPurchase = await database.perkPurchase.findUniqueOrThrow({
+        where: { id: winner.id },
+      });
+      const claim = await claims.confirmPurchase(
+        winner.id,
+        winnerPurchase.buyerId,
+        {
+          transactionReference: `0x${"12".repeat(32)}`,
+        },
+      );
       assert.equal(
         await database.claim.count({ where: { perkId: perk.id } }),
         1,
@@ -145,26 +180,77 @@ test(
       assert.equal(exhausted.status, "EXHAUSTED");
       assert.equal(exhausted.claimedCount, 1);
 
-      const duplicate = await claims.create(perk.id, winner.claimantId, {});
-      assert.equal(duplicate.id, winner.id);
+      const ownClaims = await claims.listOwn(winnerPurchase.buyerId, {
+        limit: 20,
+      });
+      const ownClaim = ownClaims.items.find((item) => item.id === claim.id);
+      assert.ok(ownClaim);
+      assert.equal(ownClaim.perk?.title, "Private livestream");
+      assert.equal(ownClaim.perk?.creatorName, "Perk Test");
+      assert.equal(ownClaim.perk?.tokenSymbol, "PRK");
+      assert.equal(ownClaim.payment?.amount, "100");
+      assert.equal(ownClaim.payment?.payerAccountId, winnerPurchase.accountId);
+      assert.equal(
+        ownClaim.payment?.transactionReference,
+        `0x${"12".repeat(32)}`,
+      );
+
+      const creatorClaims = await claims.listForCreator(
+        perk.id,
+        creatorUser.id,
+        { limit: 20 },
+      );
+      const creatorClaim = creatorClaims.items.find(
+        (item) => item.id === claim.id,
+      );
+      assert.ok(creatorClaim);
+      assert.equal("payment" in creatorClaim, false);
+
+      const duplicate = await claims.confirmPurchase(
+        winner.id,
+        winnerPurchase.buyerId,
+        {
+          transactionReference: `0x${"12".repeat(32)}`,
+        },
+      );
+      assert.equal(duplicate.id, claim.id);
       await assert.rejects(() =>
-        claims.fulfill(winner.id, fanTwo.id, {
-          expectedVersion: winner.version,
+        claims.fulfill(claim.id, fanTwo.id, {
+          expectedVersion: claim.version,
         }),
       );
-      const fulfilled = await claims.fulfill(winner.id, creatorUser.id, {
-        expectedVersion: winner.version,
+      const fulfilled = await claims.fulfill(claim.id, creatorUser.id, {
+        expectedVersion: claim.version,
         note: "Access code: STAGE-DEMO",
       });
       assert.equal(fulfilled.status, "fulfilled");
+      const fulfilledOwnClaim = (
+        await claims.listOwn(winnerPurchase.buyerId, { limit: 20 })
+      ).items.find((item) => item.id === claim.id);
+      assert.equal(fulfilledOwnClaim?.status, "fulfilled");
+      assert.equal(
+        fulfilledOwnClaim?.fulfillmentNote,
+        "Access code: STAGE-DEMO",
+      );
+      assert.ok(fulfilledOwnClaim?.fulfilledAt);
 
       const outbox = await database.outboxEvent.findMany({
         where: {
-          eventType: { in: ["HCS_PERK_ACTIVATED", "HCS_PERK_FULFILLED"] },
-          OR: [{ aggregateId: perk.id }, { aggregateId: winner.id }],
+          eventType: {
+            in: [
+              "HCS_PERK_ACTIVATED",
+              "HCS_PERK_PURCHASED",
+              "HCS_PERK_FULFILLED",
+            ],
+          },
+          OR: [
+            { aggregateId: perk.id },
+            { aggregateId: winner.id },
+            { aggregateId: claim.id },
+          ],
         },
       });
-      assert.equal(outbox.length, 2);
+      assert.equal(outbox.length, 3);
       const publicMessages = JSON.stringify(
         outbox.map((event) => event.payload),
       );
@@ -192,6 +278,7 @@ test(
         await database.claimRedemption.deleteMany({
           where: { claimId: { in: claimIds } },
         });
+        await database.perkPurchase.deleteMany({ where: { perkId } });
         await database.claim.deleteMany({ where: { perkId } });
         await database.perk.deleteMany({ where: { id: perkId } });
       }

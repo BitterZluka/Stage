@@ -9,6 +9,11 @@ import type {
 } from "../contracts.js";
 
 export interface PerkService {
+  listMyPerks(
+    filters?: Partial<PageRequest> & {
+      status?: Perk["status"];
+    },
+  ): Promise<Page<Perk>>;
   listCreatorPerks(
     creatorId: CreatorId,
     page?: Partial<PageRequest>,
@@ -19,4 +24,5 @@ export interface PerkService {
   activatePerk(perkId: PerkId, expectedVersion: number): Promise<Perk>;
   pausePerk(perkId: PerkId, expectedVersion: number): Promise<Perk>;
   resumePerk(perkId: PerkId, expectedVersion: number): Promise<Perk>;
+  deletePerk(perkId: PerkId, expectedVersion: number): Promise<void>;
 }

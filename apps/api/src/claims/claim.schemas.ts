@@ -1,11 +1,21 @@
 import { z } from "zod";
 
-export const createClaimSchema = z.object({
+export const createPerkPurchaseSchema = z.object({
   accountId: z
     .string()
     .trim()
     .regex(/^0\.0\.\d+$/, "A canonical Hedera account ID is required")
     .optional(),
+});
+
+export const confirmPerkPurchaseSchema = z.object({
+  transactionReference: z
+    .string()
+    .trim()
+    .regex(
+      /^(?:0x[a-fA-F0-9]{64}|0\.0\.\d+@\d+\.\d+(?:\/\d+)?)$/,
+      "A Hedera transaction ID or 32-byte EVM transaction hash is required",
+    ),
 });
 
 export const fulfillClaimSchema = z.object({
@@ -19,6 +29,7 @@ export const listClaimsSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
-export type CreateClaimDto = z.infer<typeof createClaimSchema>;
+export type CreatePerkPurchaseDto = z.infer<typeof createPerkPurchaseSchema>;
+export type ConfirmPerkPurchaseDto = z.infer<typeof confirmPerkPurchaseSchema>;
 export type FulfillClaimDto = z.infer<typeof fulfillClaimSchema>;
 export type ListClaimsQuery = z.infer<typeof listClaimsSchema>;

@@ -16,6 +16,7 @@ export type AuditEventType =
   | "winner_selected"
   | "reward_paid"
   | "perk_activated"
+  | "perk_purchased"
   | "perk_fulfilled"
   | "claim_minted"
   | "claim_redeemed";

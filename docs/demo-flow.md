@@ -56,12 +56,13 @@ Presenter's key point: the browser does not sign the system transaction; the DB 
 
 During Mirror lag, the UI displays “transaction confirmed, balance is being indexed” and retries the read. This is not treated as a transfer failure.
 
-### 5. Perk claim
+### 5. Perk purchase
 
-1. Boris opens a perk with a token threshold.
-2. The API checks World verification, token association, the confirmed Mirror Node balance, and inventory; tokens are not spent.
-3. The claim is created once; repeating the same intent returns the existing claim.
-4. Alina marks manual fulfillment; the private note remains in PostgreSQL, while the public audit shows only the claim/perk IDs and status.
+1. Boris opens a perk with a creator-token price.
+2. The API checks World verification, association, balance, and inventory, then reserves a short-lived purchase intent.
+3. Boris approves the exact HTS transfer in MetaMask or Hedera WalletConnect.
+4. Mirror Node proves the payer, token, treasury destination, amount, and success before the claim is created.
+5. Alina marks manual fulfillment; the private note remains in PostgreSQL, while the public audit shows only public purchase/claim/perk IDs and transaction facts.
 
 ### 6. Verifiable conclusion
 

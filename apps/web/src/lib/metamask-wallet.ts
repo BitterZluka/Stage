@@ -1,9 +1,13 @@
 "use client";
 
-import type {
-  EvmAddress,
-  HederaAccountId,
-  HederaTokenId,
+import {
+  encodeErc20Transfer,
+  hederaAccountEvmAddress,
+  hederaTokenEvmAddress,
+  type EvmAddress,
+  type HederaAccountId,
+  type HederaTokenId,
+  type TokenAmount,
 } from "@creator-platform/shared";
 
 interface EthereumProvider {
@@ -39,18 +43,6 @@ function errorCode(error: unknown): number | undefined {
     typeof error.code === "number"
     ? error.code
     : undefined;
-}
-
-function tokenFacadeAddress(tokenId: HederaTokenId): EvmAddress {
-  const match = /^0\.0\.(\d+)$/.exec(tokenId);
-  if (!match?.[1]) {
-    throw new Error("The creator token has an invalid Hedera token ID.");
-  }
-  const tokenNumber = BigInt(match[1]);
-  if (tokenNumber > 0xffff_ffff_ffff_ffffn) {
-    throw new Error("The creator token ID is outside the supported range.");
-  }
-  return `0x${tokenNumber.toString(16).padStart(40, "0")}` as EvmAddress;
 }
 
 function mirrorNodeUrl(): string {
@@ -114,25 +106,42 @@ async function isTokenAssociated(
   return body.tokens?.some((token) => token.token_id === tokenId) ?? false;
 }
 
-async function canonicalHederaAccountId(
-  address: EvmAddress,
-): Promise<HederaAccountId> {
+async function mirrorAccount(identity: string): Promise<{
+  accountId: HederaAccountId;
+  evmAddress: EvmAddress | null;
+}> {
   const response = await fetch(
-    `${mirrorNodeUrl()}/api/v1/accounts/${encodeURIComponent(address)}?transactions=false`,
+    `${mirrorNodeUrl()}/api/v1/accounts/${encodeURIComponent(identity)}?transactions=false`,
     { cache: "no-store" },
   );
   if (!response.ok) {
     throw new Error(
-      "The selected MetaMask account could not be resolved on Hedera testnet.",
+      "A required account could not be resolved on Hedera testnet.",
     );
   }
-  const body = (await response.json()) as { account?: unknown };
+  const body = (await response.json()) as {
+    account?: unknown;
+    evm_address?: unknown;
+  };
   if (typeof body.account !== "string" || !/^0\.0\.\d+$/.test(body.account)) {
     throw new Error(
-      "The selected MetaMask account does not have a canonical Hedera testnet account.",
+      "The Hedera account response does not contain a canonical account ID.",
     );
   }
-  return body.account as HederaAccountId;
+  return {
+    accountId: body.account as HederaAccountId,
+    evmAddress:
+      typeof body.evm_address === "string" &&
+      /^0x[a-fA-F0-9]{40}$/.test(body.evm_address)
+        ? (body.evm_address as EvmAddress)
+        : null,
+  };
+}
+
+async function canonicalHederaAccountId(
+  address: EvmAddress,
+): Promise<HederaAccountId> {
+  return (await mirrorAccount(address)).accountId;
 }
 
 async function selectHederaTestnet(provider: EthereumProvider): Promise<void> {
@@ -209,7 +218,7 @@ export async function associateMetaMaskToken(
     params: [
       {
         from: address,
-        to: tokenFacadeAddress(tokenId),
+        to: hederaTokenEvmAddress(tokenId),
         // HRC-719 associate(): the caller associates itself with this HTS token.
         data: "0x0a754de6",
       },
@@ -232,7 +241,7 @@ export async function associateMetaMaskToken(
             params: {
               type: "ERC20",
               options: {
-                address: tokenFacadeAddress(tokenId),
+                address: hederaTokenEvmAddress(tokenId),
                 symbol: token.symbol,
                 decimals: token.decimals,
               },
@@ -249,4 +258,44 @@ export async function associateMetaMaskToken(
   throw new Error(
     `Transaction ${transactionHash} was submitted, but Mirror Node has not confirmed the token association yet. Check it on HashScan before retrying.`,
   );
+}
+
+export async function spendMetaMaskTokens(
+  expectedAccountId: HederaAccountId,
+  tokenId: HederaTokenId,
+  destinationAccountId: HederaAccountId,
+  amount: TokenAmount,
+): Promise<string> {
+  const provider = getMetaMask();
+  await selectHederaTestnet(provider);
+  const address = await connectMetaMask();
+  const resolvedAccountId = await canonicalHederaAccountId(address);
+  if (resolvedAccountId !== expectedAccountId) {
+    throw new Error(
+      "Select the same MetaMask account that is logged in to STAGE, then try again.",
+    );
+  }
+  const destination = await mirrorAccount(destinationAccountId);
+  const destinationEvmAddress =
+    destination.evmAddress ?? hederaAccountEvmAddress(destination.accountId);
+  const transactionHash = await provider.request({
+    method: "eth_sendTransaction",
+    params: [
+      {
+        from: address,
+        to: hederaTokenEvmAddress(tokenId),
+        data: encodeErc20Transfer(
+          destinationEvmAddress,
+          amount,
+        ),
+      },
+    ],
+  });
+  if (
+    typeof transactionHash !== "string" ||
+    !/^0x[a-fA-F0-9]{64}$/.test(transactionHash)
+  ) {
+    throw new Error("MetaMask returned an invalid transaction hash.");
+  }
+  return transactionHash;
 }

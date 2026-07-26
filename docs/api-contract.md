@@ -70,14 +70,17 @@ Chain column: `—` — none; `R` — Hedera/Mirror read; `W(outbox)` — write 
 | World | `POST /world/verify` | `{ proof, hederaAccountId? }` → `WorldVerificationView` | User; action/signal rebuilt by backend | `PROOF_INVALID`, `PROOF_REPLAYED`, `ACTION_MISMATCH`, `SIGNAL_MISMATCH` | — | sync/idempotent |
 | World | `GET /world/status` | — → view | User; self | — | — | sync |
 | Perks | `GET /creators/:creatorId/perks` | query `cursor` → page | Public | — | — | sync |
+| Perks | `GET /perks/mine` | query `status,cursor,limit` → page | Creator; own drafts and published perks | — | — | sync |
 | Perks | `GET /perks/:perkId` | — → `PerkView` | Public; non-draft | — | — | sync |
 | Perks | `POST /creators/:creatorId/perks` | `CreatePerkDto` → `PerkView` | Creator owner | `CREATOR_INACTIVE`, `THRESHOLD_INVALID`, `INVENTORY_INVALID` | — | sync |
 | Perks | `PATCH /perks/:perkId` | `UpdatePerkDto` → view | Creator; draft only | `PERK_NOT_DRAFT`, `VERSION_CONFLICT` | — | sync |
+| Perks | `DELETE /perks/:perkId` | `{ expectedVersion }` → no content | Creator; unclaimed draft only | `PERK_NOT_DRAFT`, `VERSION_CONFLICT` | — | sync |
 | Perks | `POST /perks/:perkId/activate` | `{ expectedVersion }` → view | Creator | `CREATOR_TOKEN_NOT_ACTIVE`, `VERSION_CONFLICT` | HCS(outbox) | sync DB; audit eventual |
 | Perks | `POST /perks/:perkId/pause` | `{ expectedVersion }` → view | Creator | `INVALID_PERK_TRANSITION` | — | sync |
 | Perks | `POST /perks/:perkId/resume` | `{ expectedVersion }` → view | Creator | `CREATOR_TOKEN_NOT_ACTIVE` | — | sync |
-| Claims | `POST /perks/:perkId/claims` | `{ accountId? }` → `ClaimView` | User; World when required; eligible token holder | `TOKEN_NOT_ASSOCIATED`, `TOKEN_BALANCE_INSUFFICIENT`, `PERK_OUT_OF_STOCK` | Mirror read | sync/idempotent |
-| Claims | `GET /claims` | query `cursor` → own page | User; self | — | — | sync |
+| Claims | `POST /perks/:perkId/purchases` | `{ accountId? }` → `PerkPurchaseIntentView` | User; World when required; associated token holder with sufficient balance | `TOKEN_NOT_ASSOCIATED`, `TOKEN_BALANCE_INSUFFICIENT`, `PERK_OUT_OF_STOCK` | Mirror read | sync reservation |
+| Claims | `POST /perk-purchases/:purchaseId/confirm` | `{ transactionReference }` → `ClaimView` | Purchase owner; exact user-signed payment required | `PAYMENT_NOT_INDEXED`, `PAYMENT_INVALID`, `PAYMENT_ALREADY_USED` | Mirror verification + HCS(outbox) | sync DB after eventual chain read |
+| Claims | `GET /claims` | query `cursor,status,limit` → own `ClaimView` page with perk, fulfillment, and confirmed payment details | User; self | — | — | sync |
 | Claims | `GET /perks/:perkId/claims` | query `cursor,status` → page | Creator; own perk | — | — | sync |
 | Claims | `GET /claims/:claimId` | — → view | claimant, perk Creator, Admin | — | — | sync |
 | Claims | `POST /claims/:claimId/fulfill` | `{ expectedVersion, note? }` → `ClaimView` | Creator; own perk | `CLAIM_ALREADY_FINAL`, `VERSION_CONFLICT` | HCS(outbox) | sync DB; audit eventual |
@@ -138,19 +141,55 @@ type WorldProofDto = {
 type CreatePerkDto = {
   title: string;
   description: string;
-  tokenThreshold: string;  // positive creator-token base units; not spent
+  tokenThreshold: string;  // positive creator-token price in base units
   inventory: number;       // 1..10000
   requiresWorldVerification: boolean;
 };
 
-type CreateClaimDto = {
+type CreatePerkPurchaseDto = {
   accountId?: string;      // must be a verified wallet owned by this user
+};
+
+type ConfirmPerkPurchaseDto = {
+  transactionReference: string; // native transaction ID or EVM transaction hash
+};
+
+type ClaimView = {
+  id: string;
+  perkId: string;
+  claimantId: string;
+  status: "claimed" | "fulfilled" | "cancelled";
+  perk?: {
+    title: string;
+    description: string;
+    creatorName: string;
+    creatorHandle: string;
+    tokenSymbol: string;
+  };
+  fulfillmentNote?: string;
+  fulfilledAt?: string;
+  payment?: {
+    purchaseId: string;
+    tokenId: string;
+    amount: string;
+    payerAccountId: string;
+    destinationAccountId: string;
+    transactionReference: string;
+    consensusTimestamp: string;
+  };
+  version: number;
+  createdAt: string;
+  updatedAt: string;
 };
 ```
 
 A successful submission atomically creates its participation payout and outbox
 command. The worker later transfers the creator token through
 `packages/hedera`.
+
+`ClaimView.payment` is returned only to the purchasing user after payment
+confirmation. Creator fulfillment lists include the perk and claim lifecycle
+but omit the buyer's Hedera payment and account details.
 
 Response views do not contain another user's email, World proof/nullifier, signer/key references, treasury account internals, or raw Hedera receipts. `CreatorTokenView.chainStatus` and `RewardView.chainStatus` explicitly distinguish `PENDING`, `CONFIRMED`, and `FAILED`.
 

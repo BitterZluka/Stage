@@ -215,6 +215,7 @@ export type StageAuditEventType =
   | "winner_selected"
   | "reward_paid"
   | "perk_activated"
+  | "perk_purchased"
   | "perk_fulfilled"
   | "claim_minted"
   | "claim_redeemed";
@@ -302,6 +303,25 @@ export interface MirrorTransaction {
   transfers: HbarTransfer[];
   tokenTransfers: TokenTransfer[];
   nftTransfers: NftTransfer[];
+}
+
+export interface MirrorContractLog {
+  address: string;
+  contractId: string | null;
+  data: string;
+  index: number;
+  topics: string[];
+}
+
+export interface MirrorContractResult {
+  hash: string;
+  from: string;
+  to: string | null;
+  functionParameters: string;
+  result: string;
+  status: number;
+  consensusTimestamp: string;
+  logs: MirrorContractLog[];
 }
 
 export interface PrepareTokenAssociationInput {

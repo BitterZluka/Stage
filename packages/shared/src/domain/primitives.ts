@@ -15,6 +15,7 @@ export type RewardReservationId = Brand<string, "RewardReservationId">;
 export type RewardPayoutId = Brand<string, "RewardPayoutId">;
 export type WorldVerificationId = Brand<string, "WorldVerificationId">;
 export type PerkId = Brand<string, "PerkId">;
+export type PerkPurchaseId = Brand<string, "PerkPurchaseId">;
 export type ClaimId = Brand<string, "ClaimId">;
 export type ClaimRedemptionId = Brand<string, "ClaimRedemptionId">;
 export type UserId = Brand<string, "UserId">;

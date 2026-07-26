@@ -11,6 +11,7 @@ import { Button } from "./ui/button";
 const NAV_LINKS = [
   { href: "/challenges", label: "Challenges" },
   { href: "/creators", label: "Creators" },
+  { href: "/perks", label: "Perks" },
 ];
 
 export function SiteHeader() {
@@ -45,9 +46,12 @@ export function SiteHeader() {
   }
 
   const accountId = session?.user.accountIds[0];
-  const navLinks = session?.user.creatorId
-    ? [...NAV_LINKS, { href: "/studio/challenges", label: "Studio" }]
+  const authenticatedLinks = session
+    ? [...NAV_LINKS, { href: "/my-perks", label: "My perks" }]
     : NAV_LINKS;
+  const navLinks = session?.user.creatorId
+    ? [...authenticatedLinks, { href: "/studio/challenges", label: "Studio" }]
+    : authenticatedLinks;
   const authLabel = loading
     ? "Checking…"
     : accountId

@@ -314,15 +314,27 @@ async function processHcs(
         ? "reward_paid"
         : event.eventType === "HCS_PERK_ACTIVATED"
           ? "perk_activated"
-          : "perk_fulfilled";
+          : event.eventType === "HCS_PERK_PURCHASED"
+            ? "perk_purchased"
+            : "perk_fulfilled";
   const isPerkEvent =
     event.eventType === "HCS_PERK_ACTIVATED" ||
+    event.eventType === "HCS_PERK_PURCHASED" ||
     event.eventType === "HCS_PERK_FULFILLED";
   const publicData: JsonObject = isPerkEvent
     ? { perkId: String(source.perkId ?? event.aggregateId) }
     : { challengeId: String(source.challengeId ?? event.aggregateId) };
   if (typeof source.claimId === "string") {
     publicData.claimId = source.claimId;
+  }
+  if (typeof source.purchaseId === "string") {
+    publicData.purchaseId = source.purchaseId;
+  }
+  if (typeof source.tokenId === "string") {
+    publicData.tokenId = source.tokenId;
+  }
+  if (typeof source.amount === "string") {
+    publicData.amount = source.amount;
   }
   if (typeof source.transactionId === "string") {
     publicData.transactionId = source.transactionId;
@@ -422,6 +434,7 @@ export async function processOneOutboxEvent(
       event.eventType === "HCS_CHALLENGE_PUBLISHED" ||
       event.eventType === "HCS_REWARD_CONFIRMED" ||
       event.eventType === "HCS_PERK_ACTIVATED" ||
+      event.eventType === "HCS_PERK_PURCHASED" ||
       event.eventType === "HCS_PERK_FULFILLED"
     ) {
       await processHcs(provider, event);

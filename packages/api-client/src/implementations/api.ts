@@ -8,7 +8,8 @@ import type {
   CatalogResponse,
   Claim,
   ClaimId,
-  CreateClaimInput,
+  ConfirmPerkPurchaseInput,
+  CreatePerkPurchaseInput,
   CreateChallengeInput,
   CreateSubmissionInput,
   CreateCreatorInput,
@@ -22,6 +23,8 @@ import type {
   PageRequest,
   Perk,
   PerkId,
+  PerkPurchaseId,
+  PerkPurchaseIntent,
   RewardPayout,
   Submission,
   SubmissionDecisionInput,
@@ -335,6 +338,19 @@ function pageQuery(page?: Partial<PageRequest>): string {
 }
 
 export class ApiPerkService extends ApiServiceContract implements PerkService {
+  listMyPerks(
+    filters?: Partial<PageRequest> & {
+      status?: Perk["status"];
+    },
+  ): Promise<Page<Perk>> {
+    const query = new URLSearchParams();
+    if (filters?.status) query.set("status", filters.status);
+    if (filters?.cursor) query.set("cursor", filters.cursor);
+    if (filters?.limit) query.set("limit", String(filters.limit));
+    const suffix = query.size ? `?${query}` : "";
+    return this.request(`/perks/mine${suffix}`);
+  }
+
   listCreatorPerks(
     creatorId: CreatorId,
     page?: Partial<PageRequest>,
@@ -378,6 +394,13 @@ export class ApiPerkService extends ApiServiceContract implements PerkService {
     return this.transition(perkId, "resume", expectedVersion);
   }
 
+  deletePerk(perkId: PerkId, expectedVersion: number): Promise<void> {
+    return this.request(`/perks/${perkId}`, {
+      method: "DELETE",
+      body: JSON.stringify({ expectedVersion }),
+    });
+  }
+
   private transition(
     perkId: PerkId,
     action: "activate" | "pause" | "resume",
@@ -394,8 +417,21 @@ export class ApiClaimService
   extends ApiServiceContract
   implements ClaimService
 {
-  createClaim(perkId: PerkId, input: CreateClaimInput = {}): Promise<Claim> {
-    return this.request(`/perks/${perkId}/claims`, {
+  createPurchaseIntent(
+    perkId: PerkId,
+    input: CreatePerkPurchaseInput = {},
+  ): Promise<PerkPurchaseIntent> {
+    return this.request(`/perks/${perkId}/purchases`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  confirmPurchase(
+    purchaseId: PerkPurchaseId,
+    input: ConfirmPerkPurchaseInput,
+  ): Promise<Claim> {
+    return this.request(`/perk-purchases/${purchaseId}/confirm`, {
       method: "POST",
       body: JSON.stringify(input),
     });

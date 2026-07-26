@@ -39,6 +39,17 @@ export const listPerksSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+export const listOwnedPerksSchema = z.object({
+  status: z.enum(["draft", "active", "paused", "exhausted"]).optional(),
+  cursor: z.uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const deletePerkSchema = z.object({
+  expectedVersion: z.number().int().positive(),
+});
+
 export type CreatePerkDto = z.infer<typeof createPerkSchema>;
 export type UpdatePerkDto = z.infer<typeof updatePerkSchema>;
 export type ListPerksQuery = z.infer<typeof listPerksSchema>;
+export type ListOwnedPerksQuery = z.infer<typeof listOwnedPerksSchema>;

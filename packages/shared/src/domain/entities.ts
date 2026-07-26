@@ -8,6 +8,7 @@ import type {
   IsoTimestamp,
   NftSerial,
   PerkId,
+  PerkPurchaseId,
   RewardPayoutId,
   SubmissionId,
   TokenAmount,
@@ -20,6 +21,7 @@ import type {
   CreatorStatus,
   PayoutStatus,
   PerkStatus,
+  PerkPurchaseStatus,
   SubmissionKind,
   SubmissionStatus,
   VerificationMode,
@@ -106,6 +108,13 @@ export interface Claim extends EntityTimestamps {
   perkId: PerkId;
   claimantId: UserId;
   status: ClaimStatus;
+  perk?: {
+    title: string;
+    description: string;
+    creatorName: string;
+    creatorHandle: string;
+    tokenSymbol: string;
+  };
   fulfillmentNote?: string;
   fulfilledAt?: IsoTimestamp;
   version: number;
@@ -113,6 +122,29 @@ export interface Claim extends EntityTimestamps {
   nftSerial?: NftSerial;
   mintTransactionId?: TransactionId;
   redeemTransactionId?: TransactionId;
+  payment?: {
+    purchaseId: PerkPurchaseId;
+    tokenId: HederaTokenId;
+    amount: TokenAmount;
+    payerAccountId: string;
+    destinationAccountId: string;
+    transactionReference: string;
+    consensusTimestamp: string;
+  };
+}
+
+export interface PerkPurchaseIntent extends EntityTimestamps {
+  id: PerkPurchaseId;
+  perkId: PerkId;
+  status: PerkPurchaseStatus;
+  accountId: string;
+  tokenId: HederaTokenId;
+  destinationAccountId: string;
+  amount: TokenAmount;
+  expiresAt: IsoTimestamp;
+  transactionReference?: string;
+  consensusTimestamp?: string;
+  claimId?: ClaimId;
 }
 
 // OPEN QUESTION: Decide whether challenge descriptions need immutable content hashes.

@@ -2,7 +2,9 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Inject,
   NotFoundException,
   Param,
@@ -17,7 +19,9 @@ import { requireSession } from "../auth/auth-http.js";
 import { AuthService } from "../auth/auth.service.js";
 import {
   createPerkSchema,
+  deletePerkSchema,
   entityIdSchema,
+  listOwnedPerksSchema,
   listPerksSchema,
   perkTransitionSchema,
   updatePerkSchema,
@@ -55,11 +59,37 @@ export class PerkController {
     );
   }
 
+  @Get("perks/mine")
+  async listOwned(@Query() query: unknown, @Req() request: FastifyRequest) {
+    const session = await requireSession(this.auth, request);
+    return this.perks.listOwned(
+      session.user.id,
+      session.user.creatorId,
+      parse(listOwnedPerksSchema, query),
+    );
+  }
+
   @Get("perks/:perkId")
   async get(@Param("perkId") perkId: string) {
     const perk = await this.perks.getPublic(parse(entityIdSchema, perkId));
     if (!perk) throw new NotFoundException();
     return perk;
+  }
+
+  @Delete("perks/:perkId")
+  @HttpCode(204)
+  async delete(
+    @Param("perkId") perkId: string,
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const session = await requireSession(this.auth, request);
+    const input = parse(deletePerkSchema, body);
+    await this.perks.deleteDraft(
+      parse(entityIdSchema, perkId),
+      session.user.id,
+      input.expectedVersion,
+    );
   }
 
   @Post("creators/:creatorId/perks")

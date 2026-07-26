@@ -9,7 +9,7 @@
 | Creator Economy | `CreatorToken`, `TokenOperation` | one active token per creator; amounts are decimal strings |
 | Challenges | `Challenge`, `Submission`, `Review` | submission only within the window and optional creator-token threshold; reward after acceptance; one decision per version |
 | Rewards | `RewardGrant` | unique by `(submissionId, recipientId, reason)` |
-| Perks | `Perk`, `PerkClaim` | World and Mirror token-gate eligibility is server-checked; one claim per user; claims do not exceed inventory |
+| Perks | `Perk`, `PerkPurchase`, `PerkClaim` | World eligibility and payment are server-checked; one purchase per user; confirmed claims do not exceed inventory |
 | Audit | `AuditEvent`, `OutboxMessage` | append-only; public HCS payload contains no PII |
 
 Contexts communicate through IDs and events. Prisma relations do not give one module permission to modify another module's aggregate.
@@ -20,6 +20,7 @@ Contexts communicate through IDs and events. Prisma relations do not give one mo
 - `Challenge`: `DRAFT -> PUBLISHED -> JUDGING -> COMPLETED`; `DRAFT`, `PUBLISHED`, and `JUDGING` may transition to terminal `CANCELLED`.
 - `Submission`: `SUBMITTED -> WINNER | REJECTED`; winner selection atomically reserves one of the challenge's bounded reward slots.
 - `Perk`: `DRAFT -> ACTIVE <-> PAUSED`; the final inventory reservation moves it to terminal `EXHAUSTED`.
+- `PerkPurchase`: `PENDING -> CONFIRMED`; abandoned reservations expire and can be replaced.
 - `PerkClaim`: `CLAIMED -> FULFILLED`; fulfillment is manual and PostgreSQL-backed in the MVP.
 - `WorldIdentity`: absent or verified; rejected/expired proof attempts are not persisted as identities.
 
@@ -30,6 +31,13 @@ configure it per challenge. A challenge may instead define a non-negative
 creator-token participation threshold. The API verifies the linked Hedera
 account and current Mirror Node balance before accepting a gated submission;
 tokens are held, not spent.
+
+Perks use a different policy: `tokenThreshold` is the purchase price. The
+member signs an HTS transfer back to the platform treasury. The API creates the
+claim only after Mirror Node proves the exact payer, token, destination, amount,
+and successful transaction. Native WalletConnect transaction IDs and MetaMask
+EVM transaction hashes are both supported. Transaction references are unique,
+so one payment cannot purchase two perks.
 
 Draft challenges may be hard-deleted by their creator before publication.
 Published and later lifecycle states remain durable for submissions and public
@@ -91,6 +99,7 @@ In the DB, the envelope additionally contains `actorUserId`, `requestId`, `ipHas
 | `reward.transferred.v1` | `rewardId`, `operationId`, `tokenId`, `amount`, `transactionId` | all listed fields + consensusTimestamp | recipient identity, receipt bytes |
 | `reward.failed.v1` | `rewardId`, `operationId`, `errorCode` | not published | accountId, SDK error, attempts |
 | `perk.created.v1` | `perkId`, `creatorId`, `title`, `threshold`, `inventory` | perkId, creatorId, title, tokenId, threshold | fulfillment config |
+| `perk.purchased.v1` | `purchaseId`, `claimId`, `perkId`, `tokenId`, `amount`, `transactionId` | all listed fields | payer account, World identity, wallet metadata |
 | `perk.claim.requested.v1` | `claimId`, `perkId`, `claimantUserId`, `operationId` | claimId, perkId, operationId | claimantUserId, shipping/contact |
 | `perk.claim.fulfilled.v1` | `claimId`, `perkId`, `fulfilledAt` | claimId, perkId, fulfilledAt | fulfillment evidence/address |
 | `audit.anchor.submitted.v1` | `batchId`, `operationId`, `merkleRoot`, `fromEventId`, `toEventId` | batchId, operationId, merkleRoot, range | event payloads, internal sequence |
@@ -113,6 +122,7 @@ remain in PostgreSQL; HCS receives only the allowlist projection.
 | `RewardPayoutRequested` | submission | `challengeId, submissionId, recipientId, rewardType, amount` | IDs, rewardType, amount | recipientId/accountId |
 | `RewardPayoutConfirmed` | submission | `challengeId, submissionId, rewardType, transactionId` | IDs, rewardType, transactionId | receipt/debug data |
 | `PerkCreated` | perk | `perkId, creatorId, price` | IDs, price | fulfillment config |
+| `PerkPurchased` | perkPurchase | `purchaseId, perkId, claimId, tokenId, amount, transactionId` | listed public fields | payer/destination accounts |
 | `ClaimMintRequested` | claim | `claimId, perkId, claimantId` | claimId, perkId | claimantId, address/contact |
 | `ClaimMinted` | claim | `claimId, nftTokenId, nftSerial, transactionId` | listed IDs | receipt/debug data |
 | `ClaimRedeemRequested` | claim | `claimId, claimantId` | claimId | claimantId, fulfillment data |

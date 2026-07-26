@@ -37,9 +37,9 @@ export function CreatorStudioShell({ children }: { children: ReactNode }) {
             This studio belongs to creators
           </h1>
           <p className="mx-auto mt-3 max-w-lg text-gray-600">
-            Log in with a creator account to create and manage challenges.
-            Creator data is also protected by the API, so a fan session cannot
-            access it.
+            Log in with a creator account to create and manage challenges and
+            perks. Creator data is also protected by the API, so a fan session
+            cannot access it.
           </p>
           <Link
             href="/"
@@ -65,8 +65,8 @@ export function CreatorStudioShell({ children }: { children: ReactNode }) {
                 Creator Studio
               </h1>
               <p className="mt-2 max-w-2xl text-gray-700">
-                Build community challenges, manage their lifecycle, and prepare
-                future member perks.
+                Build community challenges, publish token-gated perks, and
+                manage their lifecycle from one protected workspace.
               </p>
             </div>
             <nav

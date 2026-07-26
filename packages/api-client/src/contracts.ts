@@ -17,6 +17,8 @@ import type {
   PageRequest,
   Perk,
   PerkId,
+  PerkPurchaseId,
+  PerkPurchaseIntent,
   RewardPayout,
   Submission,
   SubmissionId,
@@ -46,6 +48,8 @@ export type {
   PageRequest,
   Perk,
   PerkId,
+  PerkPurchaseId,
+  PerkPurchaseIntent,
   RewardPayout,
   Submission,
   SubmissionId,
@@ -134,14 +138,18 @@ export interface UpdatePerkInput {
 export type SubmissionDecisionInput =
   | { decision: "accept"; expectedVersion: number }
   | {
-    decision: "reject";
-    expectedVersion: number;
-    reasonCode: string;
-    note?: string;
-  };
+      decision: "reject";
+      expectedVersion: number;
+      reasonCode: string;
+      note?: string;
+    };
 
-export interface CreateClaimInput {
+export interface CreatePerkPurchaseInput {
   accountId?: HederaAccountId;
+}
+
+export interface ConfirmPerkPurchaseInput {
+  transactionReference: string;
 }
 
 export interface FulfillClaimInput {

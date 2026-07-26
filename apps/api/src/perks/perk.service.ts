@@ -9,6 +9,7 @@ import {
 import { DatabaseService } from "../database/database.service.js";
 import type {
   CreatePerkDto,
+  ListOwnedPerksQuery,
   ListPerksQuery,
   UpdatePerkDto,
 } from "./perk.schemas.js";
@@ -150,6 +151,43 @@ export class PerkService {
     );
   }
 
+  async deleteDraft(
+    perkId: string,
+    userId: string,
+    expectedVersion: number,
+  ): Promise<void> {
+    await this.database.$transaction(async (transaction) => {
+      const current = await transaction.perk.findUnique({
+        where: { id: perkId },
+      });
+      if (!current) throw new NotFoundException();
+      await this.requireOwnedCreator(userId, current.creatorId);
+      if (current.status !== "DRAFT") {
+        throw conflict("PERK_NOT_DRAFT", "Only draft perks can be deleted");
+      }
+      if (current.version !== expectedVersion) {
+        throw conflict(
+          "VERSION_CONFLICT",
+          "The perk was changed by another request",
+        );
+      }
+      const result = await transaction.perk.deleteMany({
+        where: {
+          id: perkId,
+          status: "DRAFT",
+          version: expectedVersion,
+          claimedCount: 0,
+        },
+      });
+      if (result.count !== 1) {
+        throw conflict(
+          "VERSION_CONFLICT",
+          "The perk was changed by another request",
+        );
+      }
+    });
+  }
+
   async transition(
     perkId: string,
     userId: string,
@@ -246,6 +284,45 @@ export class PerkService {
         status: query.status
           ? (query.status.toUpperCase() as "ACTIVE" | "PAUSED" | "EXHAUSTED")
           : { in: ["ACTIVE", "PAUSED", "EXHAUSTED"] },
+      },
+      orderBy: { id: "asc" },
+      take: query.limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    });
+    const hasMore = rows.length > query.limit;
+    const items = hasMore ? rows.slice(0, query.limit) : rows;
+    return {
+      items: items.map((perk) => this.toView(perk)),
+      pageInfo: {
+        hasNextPage: hasMore,
+        nextCursor: hasMore ? items.at(-1)?.id : undefined,
+      },
+    };
+  }
+
+  async listOwned(
+    userId: string,
+    creatorId: string | null,
+    query: ListOwnedPerksQuery,
+  ) {
+    if (!creatorId) {
+      throw new ForbiddenException({
+        error: {
+          code: "CREATOR_OWNERSHIP_REQUIRED",
+          message: "A creator profile is required to manage perks",
+        },
+      });
+    }
+    await this.requireOwnedCreator(userId, creatorId);
+    const rows = await this.database.perk.findMany({
+      where: {
+        creatorId,
+        ...(query.status
+          ? {
+              status: query.status.toUpperCase() as
+                "DRAFT" | "ACTIVE" | "PAUSED" | "EXHAUSTED",
+            }
+          : {}),
       },
       orderBy: { id: "asc" },
       take: query.limit + 1,

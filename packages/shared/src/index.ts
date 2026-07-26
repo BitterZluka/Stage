@@ -9,3 +9,4 @@ export * from "./events/domain-events.js";
 export * from "./errors/application-error.js";
 export * from "./providers/hedera-provider.js";
 export * from "./providers/ports.js";
+export * from "./hedera/evm.js";

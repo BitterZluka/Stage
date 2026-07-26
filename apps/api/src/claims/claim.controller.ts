@@ -16,7 +16,8 @@ import { requireSession } from "../auth/auth-http.js";
 import { AuthService } from "../auth/auth.service.js";
 import { entityIdSchema } from "../perks/perk.schemas.js";
 import {
-  createClaimSchema,
+  confirmPerkPurchaseSchema,
+  createPerkPurchaseSchema,
   fulfillClaimSchema,
   listClaimsSchema,
 } from "./claim.schemas.js";
@@ -45,17 +46,31 @@ export class ClaimController {
     private readonly auth: AuthService,
   ) {}
 
-  @Post("perks/:perkId/claims")
-  async create(
+  @Post("perks/:perkId/purchases")
+  async createPurchase(
     @Param("perkId") perkId: string,
     @Body() body: unknown,
     @Req() request: FastifyRequest,
   ) {
     const session = await requireSession(this.auth, request);
-    return this.claims.create(
+    return this.claims.createPurchaseIntent(
       parse(entityIdSchema, perkId),
       session.user.id,
-      parse(createClaimSchema, body),
+      parse(createPerkPurchaseSchema, body),
+    );
+  }
+
+  @Post("perk-purchases/:purchaseId/confirm")
+  async confirmPurchase(
+    @Param("purchaseId") purchaseId: string,
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+  ) {
+    const session = await requireSession(this.auth, request);
+    return this.claims.confirmPurchase(
+      parse(entityIdSchema, purchaseId),
+      session.user.id,
+      parse(confirmPerkPurchaseSchema, body),
     );
   }
 

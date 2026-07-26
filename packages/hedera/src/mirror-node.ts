@@ -3,6 +3,7 @@ import type {
   AccountIdentityInfo,
   AccountKeyInfo,
   GetTopicMessagesInput,
+  MirrorContractResult,
   MirrorTransaction,
   NftOwner,
   TokenBalance,
@@ -234,7 +235,8 @@ export class MirrorNodeClient {
     if (!account.keyType || !account.publicKey) {
       throw new StageHederaError({
         code: "MIRROR_NODE_ERROR",
-        message: "Mirror Node account response does not contain a simple public key",
+        message:
+          "Mirror Node account response does not contain a simple public key",
         operation: "getAccountKey",
         retryable: false,
         context: { accountId },
@@ -442,6 +444,45 @@ export class MirrorNodeClient {
       transfers,
       tokenTransfers,
       nftTransfers,
+    };
+  }
+
+  async getContractResult(
+    transactionIdOrHash: string,
+  ): Promise<MirrorContractResult | null> {
+    const response = await this.request(
+      `/api/v1/contracts/results/${encodeURIComponent(
+        toMirrorTransactionId(transactionIdOrHash),
+      )}`,
+      true,
+    );
+    if (!response) return null;
+    const data = objectValue(response, "contract result response");
+    const logs = Array.isArray(data.logs)
+      ? data.logs.map((raw) => {
+          const log = objectValue(raw, "contract log");
+          return {
+            address: stringValue(log.address),
+            contractId: nullableString(log.contract_id),
+            data: stringValue(log.data),
+            index: Number(log.index ?? 0),
+            topics: Array.isArray(log.topics)
+              ? log.topics.filter(
+                  (topic): topic is string => typeof topic === "string",
+                )
+              : [],
+          };
+        })
+      : [];
+    return {
+      hash: stringValue(data.hash),
+      from: stringValue(data.from),
+      to: nullableString(data.to),
+      functionParameters: stringValue(data.function_parameters),
+      result: stringValue(data.result, "UNKNOWN"),
+      status: Number(data.status ?? 0),
+      consensusTimestamp: stringValue(data.timestamp),
+      logs,
     };
   }
 

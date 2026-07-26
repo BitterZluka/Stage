@@ -218,7 +218,7 @@ export class CatalogService {
           select: {
             handle: true,
             displayName: true,
-            token: { select: { symbol: true } },
+            token: { select: { symbol: true, hederaTokenId: true } },
           },
         },
       },
@@ -227,6 +227,9 @@ export class CatalogService {
     const databasePerks: CatalogPerk[] = rows.map((perk) => ({
       id: perk.id,
       creatorId: perk.creatorId,
+      ...(perk.creator.token?.hederaTokenId
+        ? { creatorTokenId: perk.creator.token.hederaTokenId }
+        : {}),
       creatorHandle: perk.creator.handle,
       creatorName: perk.creator.displayName,
       title: perk.title,

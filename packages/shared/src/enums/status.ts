@@ -50,6 +50,13 @@ export enum ClaimStatus {
   Cancelled = "cancelled",
 }
 
+export enum PerkPurchaseStatus {
+  Pending = "pending",
+  Confirmed = "confirmed",
+  Expired = "expired",
+  Failed = "failed",
+}
+
 export enum TransactionStatus {
   Pending = "pending",
   Success = "success",

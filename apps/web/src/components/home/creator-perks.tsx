@@ -1,6 +1,7 @@
 "use client";
 
 import type { CatalogPerk } from "@creator-platform/api-client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { catalogService, perkAccent } from "../../lib/catalog";
 import { GiftIcon, ZapIcon } from "../icons";
@@ -52,36 +53,43 @@ export function CreatorPerks() {
           {perks.map((perk) => {
             const accent = perkAccent(perk);
             return (
-              <SurfaceCard key={perk.id} accent={accent} className="p-5">
-                <div
-                  className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border-2 border-black"
-                  style={{
-                    background: `linear-gradient(135deg, ${accent}, #fff)`,
-                  }}
-                  aria-hidden="true"
+              <Link
+                key={perk.id}
+                href={`/perks?perk=${encodeURIComponent(perk.id)}`}
+                aria-label={`View ${perk.title}`}
+                className="block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black"
+              >
+                <SurfaceCard
+                  accent={accent}
+                  className="h-full p-5 transition-transform hover:-translate-y-1"
                 >
-                  <GiftIcon size={18} />
-                </div>
-                <h3 className="font-display mb-0.5 text-base font-bold">
-                  {perk.title}
-                </h3>
-                <p className="mb-3 text-xs text-gray-500">{perk.creatorName}</p>
-                <div className="mb-4 flex items-center justify-between">
-                  <span className="flex items-center gap-1 text-sm font-bold">
-                    <ZapIcon size={12} />{" "}
-                    {Number(perk.tokenThreshold).toLocaleString()}
+                  <div
+                    className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border-2 border-black"
+                    style={{
+                      background: `linear-gradient(135deg, ${accent}, #fff)`,
+                    }}
+                    aria-hidden="true"
+                  >
+                    <GiftIcon size={18} />
+                  </div>
+                  <h3 className="font-display mb-0.5 text-base font-bold">
+                    {perk.title}
+                  </h3>
+                  <p className="mb-3 text-xs text-gray-500">
+                    {perk.creatorName}
+                  </p>
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-sm font-bold">
+                      <ZapIcon size={12} />{" "}
+                      {Number(perk.tokenThreshold).toLocaleString()}
+                    </span>
+                    <Badge color="aqua">{perk.category}</Badge>
+                  </div>
+                  <span className="inline-flex w-full items-center justify-center rounded-xl border-2 border-black bg-white px-4 py-2 text-sm font-bold shadow-offset">
+                    View perk
                   </span>
-                  <Badge color="aqua">{perk.category}</Badge>
-                </div>
-                <Button
-                  href="/perks"
-                  variant="ghost"
-                  size="sm"
-                  className="w-full"
-                >
-                  View Perk
-                </Button>
-              </SurfaceCard>
+                </SurfaceCard>
+              </Link>
             );
           })}
         </div>

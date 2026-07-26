@@ -56,6 +56,7 @@ export type CatalogPerkCategory = "Merch" | "Digital" | "Experience";
 export interface CatalogPerk {
   id: string;
   creatorId: string;
+  creatorTokenId?: string;
   creatorHandle: string;
   creatorName: string;
   title: string;

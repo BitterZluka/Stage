@@ -1,6 +1,7 @@
 "use client";
 
 import type { CatalogCreatorProfile } from "@creator-platform/api-client";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { DiscoverCreator } from "../../content/creators";
@@ -170,39 +171,50 @@ export function CreatorProfileView({ creatorSlug }: { creatorSlug: string }) {
             {perks.slice(0, 3).map((perk, index) => {
               const color = perkAccent(perk);
               return (
-                <SurfaceCard
+                <Link
                   key={perk.id}
-                  accent={color}
-                  className="flex flex-col p-5"
+                  href={`/perks?perk=${encodeURIComponent(perk.id)}`}
+                  aria-label={`Redeem ${perk.title}`}
+                  className="block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black"
                 >
-                  <div
-                    className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black"
-                    style={{
-                      background: `linear-gradient(135deg, ${color}, #fff)`,
-                    }}
+                  <SurfaceCard
+                    accent={color}
+                    className="flex h-full flex-col p-5 transition-transform hover:-translate-y-1"
                   >
-                    <GiftIcon size={20} />
-                  </div>
-                  <p className="mt-4 text-xs font-bold tracking-widest text-gray-500 uppercase">
-                    Perk {String(index + 1).padStart(2, "0")}
-                  </p>
-                  <h3 className="font-display mt-1 text-lg font-bold">
-                    {perk.title}
-                  </h3>
-                  <p className="mt-2 flex-1 text-sm leading-relaxed text-gray-600">
-                    {perk.description}
-                  </p>
-                  <div className="mt-5 flex items-center justify-between border-t-2 border-black/10 pt-4">
-                    <span className="flex items-center gap-1 text-sm font-bold">
-                      <ZapIcon size={14} />{" "}
-                      {Number(perk.tokenThreshold).toLocaleString()}{" "}
-                      {perk.tokenSymbol}
+                    <div
+                      className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black"
+                      style={{
+                        background: `linear-gradient(135deg, ${color}, #fff)`,
+                      }}
+                    >
+                      <GiftIcon size={20} />
+                    </div>
+                    <p className="mt-4 text-xs font-bold tracking-widest text-gray-500 uppercase">
+                      Perk {String(index + 1).padStart(2, "0")}
+                    </p>
+                    <h3 className="font-display mt-1 text-lg font-bold">
+                      {perk.title}
+                    </h3>
+                    <p className="mt-2 flex-1 text-sm leading-relaxed text-gray-600">
+                      {perk.description}
+                    </p>
+                    <div className="mt-5 flex items-center justify-between border-t-2 border-black/10 pt-4">
+                      <span className="flex items-center gap-1 text-sm font-bold">
+                        <ZapIcon size={14} />{" "}
+                        {Number(perk.tokenThreshold).toLocaleString()}{" "}
+                        {perk.tokenSymbol}
+                      </span>
+                      <Badge
+                        color={perk.status === "active" ? "aqua" : "white"}
+                      >
+                        {perk.status}
+                      </Badge>
+                    </div>
+                    <span className="mt-4 inline-flex items-center justify-center rounded-xl border-2 border-black bg-white px-4 py-2 text-sm font-bold shadow-offset">
+                      View and redeem →
                     </span>
-                    <Badge color={perk.status === "active" ? "aqua" : "white"}>
-                      {perk.status}
-                    </Badge>
-                  </div>
-                </SurfaceCard>
+                  </SurfaceCard>
+                </Link>
               );
             })}
           </div>
