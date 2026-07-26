@@ -53,7 +53,7 @@ export class CatalogService {
   constructor(
     @Inject(DatabaseService)
     private readonly database: DatabaseService,
-  ) { }
+  ) {}
 
   async listCreators(): Promise<CatalogResponse<CatalogCreator>> {
     const rows = await this.database.creator.findMany({
@@ -158,7 +158,9 @@ export class CatalogService {
         submissionKind:
           challenge.submissionKind.toLowerCase() as CatalogChallenge["submissionKind"],
         verificationMode:
-          challenge.verificationMode === "AUTOMATIC" ? "automatic" : "manual",
+          challenge.verificationMode === "AUTOMATIC"
+            ? ("automatic" as const)
+            : ("manual" as const),
         requiresWorldVerification: challenge.requiresWorldVerification,
         participationRewardAmount:
           challenge.rewardRule?.participationAmount ?? "0",
@@ -226,12 +228,8 @@ export class CatalogService {
       featured: false,
       source: "database",
     }));
-    const demoPerks = creatorId
-      ? DEMO_PERKS.filter((perk) => perk.creatorId === creatorId)
-      : DEMO_PERKS;
-
     return {
-      items: mergeById(databasePerks, demoPerks).sort(compareCatalogItems),
+      items: databasePerks.sort(compareCatalogItems),
     };
   }
 }
